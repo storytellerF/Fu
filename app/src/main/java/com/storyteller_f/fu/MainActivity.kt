@@ -27,6 +27,8 @@ class MainActivity : AppCompatActivity() {
         val h2 = findViewById<Button>(R.id.h2)
         val quota = findViewById<ImageButton>(R.id.quota)
         val alignRight = findViewById<ImageButton>(R.id.align_right)
+        val alignCenter = findViewById<ImageButton>(R.id.align_center)
+        val alignLeft = findViewById<ImageButton>(R.id.align_left)
         bold.setOnClickListener {
             text.toggle(BoldStyle::class.java)
         }
@@ -45,6 +47,16 @@ class MainActivity : AppCompatActivity() {
         alignRight.setOnClickListener {
             text.toggle(AlignmentStyle::class.java) {
                 AlignmentStyle(Layout.Alignment.ALIGN_OPPOSITE)
+            }
+        }
+        alignCenter.setOnClickListener {
+            text.toggle(AlignmentStyle::class.java) {
+                AlignmentStyle(Layout.Alignment.ALIGN_CENTER)
+            }
+        }
+        alignLeft.setOnClickListener {
+            text.toggle(AlignmentStyle::class.java) {
+                AlignmentStyle(Layout.Alignment.ALIGN_NORMAL)
             }
         }
         h1.setOnClickListener {
