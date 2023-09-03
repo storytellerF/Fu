@@ -35,6 +35,10 @@
             android:layout_height="wrap_content"
             android:src="@drawable/ic_baseline_format_strikethrough_24" />
 
+    </LinearLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
         <Button
             android:id="@+id/h1"
             android:layout_width="wrap_content"
@@ -46,8 +50,23 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="h2" />
-    </LinearLayout>
+        <Button
+            android:id="@+id/h3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="h3" />
 
+        <Button
+            android:id="@+id/h4"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="h4" />
+        <Button
+            android:id="@+id/h5"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="h5" />
+    </LinearLayout>
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content">

@@ -161,7 +161,7 @@ class StrikethroughStyle : StrikethroughSpan(), RichEditTextSpan
 class QuotaStyle : QuoteSpan(), RichEditTextSpan
 
 class HeadlineStyle(val head: Int) : ParagraphStyle, RichEditTextSpan,
-    RelativeSizeSpan((5 - head).toFloat()) {
+    RelativeSizeSpan((6 - head).toFloat()) {
     override fun updateDrawState(ds: TextPaint) {
         super.updateDrawState(ds)
         ds.isFakeBoldText = true

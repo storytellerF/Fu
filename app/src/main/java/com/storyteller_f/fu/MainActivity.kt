@@ -25,6 +25,9 @@ class MainActivity : AppCompatActivity() {
         val strike = findViewById<ImageButton>(R.id.strike)
         val h1 = findViewById<Button>(R.id.h1)
         val h2 = findViewById<Button>(R.id.h2)
+        val h3 = findViewById<Button>(R.id.h3)
+        val h4 = findViewById<Button>(R.id.h4)
+        val h5 = findViewById<Button>(R.id.h5)
         val quota = findViewById<ImageButton>(R.id.quota)
         val alignRight = findViewById<ImageButton>(R.id.align_right)
         val alignCenter = findViewById<ImageButton>(R.id.align_center)
@@ -59,14 +62,11 @@ class MainActivity : AppCompatActivity() {
                 AlignmentStyle(Layout.Alignment.ALIGN_NORMAL)
             }
         }
-        h1.setOnClickListener {
-            text.toggle(HeadlineStyle::class.java) {
-                HeadlineStyle(1)
-            }
-        }
-        h2.setOnClickListener {
-            text.toggle(HeadlineStyle::class.java) {
-                HeadlineStyle(2)
+        listOf(h1, h2, h3, h4, h5).forEachIndexed { index, button ->
+            button.setOnClickListener {
+                text.toggle(HeadlineStyle::class.java) {
+                    HeadlineStyle(index + 1)
+                }
             }
         }
     }
