@@ -24,6 +24,7 @@ class MainActivity : AppCompatActivity() {
         val underline = findViewById<ImageButton>(R.id.underline)
         val strike = findViewById<ImageButton>(R.id.strike)
         val h1 = findViewById<Button>(R.id.h1)
+        val h2 = findViewById<Button>(R.id.h2)
         val quota = findViewById<ImageButton>(R.id.quota)
         val alignRight = findViewById<ImageButton>(R.id.align_right)
         bold.setOnClickListener {
@@ -49,6 +50,11 @@ class MainActivity : AppCompatActivity() {
         h1.setOnClickListener {
             text.toggle(HeadlineStyle::class.java) {
                 HeadlineStyle(1)
+            }
+        }
+        h2.setOnClickListener {
+            text.toggle(HeadlineStyle::class.java) {
+                HeadlineStyle(2)
             }
         }
     }

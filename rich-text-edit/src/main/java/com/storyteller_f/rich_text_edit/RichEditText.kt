@@ -94,7 +94,7 @@ class RichEditText @JvmOverloads constructor(
 
     fun <T : RichEditTextSpan> toggle(
         span: Class<T>,
-        factory: () -> T = { span.newInstance() }
+        factory: () -> T = { span.newInstance() },
     ) {
         if (ParagraphStyle::class.java.isAssignableFrom(span)) {
             val selection = selectionStart
@@ -110,7 +110,7 @@ class RichEditText @JvmOverloads constructor(
             }
             toggle(span, paragraphStart, paragraphEnd, factory)
         } else if (selectionStart != selectionEnd) {
-            toggle(span, selectionStart, selectionEnd)
+            toggle(span, selectionStart, selectionEnd, factory)
         } else {
             val selection = selectionStart
             val spans = editableText.getSpans(selection, selection, span)
@@ -127,14 +127,21 @@ class RichEditText @JvmOverloads constructor(
         span: Class<T>,
         start: Int,
         end: Int,
-        factory: () -> T = { span.newInstance() }
+        factory: () -> T,
     ) {
         val spans = editableText.getSpans(start, end, span)
+        val instance = factory()
         if (spans.isEmpty()) {
-            editableText.setSpan(factory(), start, end, 0)
+            editableText.setSpan(instance, start, end, 0)
         } else {
+            val all = spans.all {
+                it != instance
+            }
             spans.forEach {
                 editableText.removeSpan(it)
+            }
+            if (all) {
+                editableText.setSpan(instance, start, end, 0)
             }
         }
     }
@@ -153,7 +160,7 @@ class StrikethroughStyle : StrikethroughSpan(), RichEditTextSpan
 
 class QuotaStyle : QuoteSpan(), RichEditTextSpan
 
-class HeadlineStyle(head: Int) : ParagraphStyle, RichEditTextSpan,
+class HeadlineStyle(val head: Int) : ParagraphStyle, RichEditTextSpan,
     RelativeSizeSpan((5 - head).toFloat()) {
     override fun updateDrawState(ds: TextPaint) {
         super.updateDrawState(ds)
@@ -164,6 +171,32 @@ class HeadlineStyle(head: Int) : ParagraphStyle, RichEditTextSpan,
         super.updateMeasureState(ds)
         ds.isFakeBoldText = true
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as HeadlineStyle
+
+        return head == other.head
+    }
+
+    override fun hashCode(): Int {
+        return head
+    }
 }
 
-class AlignmentStyle(alignment: Alignment) : AlignmentSpan.Standard(alignment), RichEditTextSpan
+class AlignmentStyle(val align: Alignment) : AlignmentSpan.Standard(align), RichEditTextSpan {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as AlignmentStyle
+
+        return align == other.align
+    }
+
+    override fun hashCode(): Int {
+        return align.hashCode()
+    }
+}
