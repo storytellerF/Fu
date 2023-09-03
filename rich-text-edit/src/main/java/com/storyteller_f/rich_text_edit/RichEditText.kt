@@ -3,11 +3,15 @@ package com.storyteller_f.rich_text_edit
 import android.content.Context
 import android.graphics.Typeface
 import android.text.Editable
+import android.text.Layout.Alignment
 import android.text.SpanWatcher
 import android.text.Spannable
+import android.text.TextPaint
 import android.text.TextWatcher
+import android.text.style.AlignmentSpan
 import android.text.style.ParagraphStyle
 import android.text.style.QuoteSpan
+import android.text.style.RelativeSizeSpan
 import android.text.style.StrikethroughSpan
 import android.text.style.StyleSpan
 import android.text.style.UnderlineSpan
@@ -88,7 +92,10 @@ class RichEditText @JvmOverloads constructor(
 
     var tempRemoveSpan = false
 
-    fun toggle(span: Class<out RichEditTextSpan>) {
+    fun <T : RichEditTextSpan> toggle(
+        span: Class<T>,
+        factory: () -> T = { span.newInstance() }
+    ) {
         if (ParagraphStyle::class.java.isAssignableFrom(span)) {
             val selection = selectionStart
             var paragraphStart = selection
@@ -101,7 +108,7 @@ class RichEditText @JvmOverloads constructor(
             while (paragraphEnd < text.length && text[paragraphEnd] != '\n') {
                 paragraphEnd++
             }
-            toggle(span, paragraphStart, paragraphEnd)
+            toggle(span, paragraphStart, paragraphEnd, factory)
         } else if (selectionStart != selectionEnd) {
             toggle(span, selectionStart, selectionEnd)
         } else {
@@ -116,10 +123,15 @@ class RichEditText @JvmOverloads constructor(
 
     }
 
-    private fun toggle(span: Class<out RichEditTextSpan>, start: Int, end: Int) {
+    private fun <T : RichEditTextSpan> toggle(
+        span: Class<T>,
+        start: Int,
+        end: Int,
+        factory: () -> T = { span.newInstance() }
+    ) {
         val spans = editableText.getSpans(start, end, span)
         if (spans.isEmpty()) {
-            editableText.setSpan(span.newInstance(), start, end, 0)
+            editableText.setSpan(factory(), start, end, 0)
         } else {
             spans.forEach {
                 editableText.removeSpan(it)
@@ -140,3 +152,18 @@ class UnderlineStyle : UnderlineSpan(), RichEditTextSpan
 class StrikethroughStyle : StrikethroughSpan(), RichEditTextSpan
 
 class QuotaStyle : QuoteSpan(), RichEditTextSpan
+
+class HeadlineStyle(head: Int) : ParagraphStyle, RichEditTextSpan,
+    RelativeSizeSpan((5 - head).toFloat()) {
+    override fun updateDrawState(ds: TextPaint) {
+        super.updateDrawState(ds)
+        ds.isFakeBoldText = true
+    }
+
+    override fun updateMeasureState(ds: TextPaint) {
+        super.updateMeasureState(ds)
+        ds.isFakeBoldText = true
+    }
+}
+
+class AlignmentStyle(alignment: Alignment) : AlignmentSpan.Standard(alignment), RichEditTextSpan
