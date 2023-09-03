@@ -1,13 +1,12 @@
 package com.storyteller_f.fu
 
-import android.graphics.Color
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.text.style.QuoteSpan
 import android.widget.Button
 import android.widget.ImageButton
+import androidx.appcompat.app.AppCompatActivity
 import com.storyteller_f.rich_text_edit.BoldStyle
 import com.storyteller_f.rich_text_edit.ItalicStyle
+import com.storyteller_f.rich_text_edit.QuotaStyle
 import com.storyteller_f.rich_text_edit.RichEditText
 import com.storyteller_f.rich_text_edit.StrikethroughStyle
 import com.storyteller_f.rich_text_edit.UnderlineStyle
@@ -23,6 +22,7 @@ class MainActivity : AppCompatActivity() {
         val strike = findViewById<ImageButton>(R.id.strike)
         val i = findViewById<Button>(R.id.h1)
         val quota = findViewById<ImageButton>(R.id.quota)
+        val alignLeft = findViewById<ImageButton>(R.id.align_left)
         bold.setOnClickListener {
             text.toggle(BoldStyle::class.java)
         }
@@ -36,8 +36,10 @@ class MainActivity : AppCompatActivity() {
             text.toggle(StrikethroughStyle::class.java)
         }
         quota.setOnClickListener {
-            val quoteSpan = QuoteSpan(Color.CYAN)
-            text.editableText.setSpan(quoteSpan, text.selectionStart, text.selectionEnd, 0)
+            text.toggle(QuotaStyle::class.java)
+        }
+        alignLeft.setOnClickListener {
+
         }
     }
 }

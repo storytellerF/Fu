@@ -2,23 +2,19 @@ package com.storyteller_f.rich_text_edit
 
 import android.content.Context
 import android.graphics.Typeface
-import android.os.Parcel
-import android.text.*
-import android.text.style.*
+import android.text.Editable
+import android.text.SpanWatcher
+import android.text.Spannable
+import android.text.TextWatcher
+import android.text.style.ParagraphStyle
+import android.text.style.QuoteSpan
+import android.text.style.StrikethroughSpan
+import android.text.style.StyleSpan
+import android.text.style.UnderlineSpan
 import android.util.AttributeSet
 import android.view.Gravity
-import android.view.inputmethod.EditorInfo
-import androidx.core.content.FileProvider
-import androidx.core.graphics.drawable.toIcon
-import androidx.core.net.toFile
-import androidx.core.text.getSpans
 import androidx.core.text.toSpannable
-import androidx.core.text.toSpanned
-import androidx.core.widget.doOnTextChanged
-import androidx.documentfile.provider.DocumentFile
-import java.io.ObjectOutputStream
-import java.io.OutputStream
-import java.io.StringWriter
+
 
 class RichEditText @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
@@ -28,13 +24,30 @@ class RichEditText @JvmOverloads constructor(
             override fun newEditable(source: CharSequence?): Editable {
                 return super.newEditable(source).apply {
                     setSpan(object : SpanWatcher {
-                        override fun onSpanAdded(text: Spannable?, what: Any?, start: Int, end: Int) {
+                        override fun onSpanAdded(
+                            text: Spannable?,
+                            what: Any?,
+                            start: Int,
+                            end: Int
+                        ) {
                         }
 
-                        override fun onSpanRemoved(text: Spannable?, what: Any?, start: Int, end: Int) {
+                        override fun onSpanRemoved(
+                            text: Spannable?,
+                            what: Any?,
+                            start: Int,
+                            end: Int
+                        ) {
                         }
 
-                        override fun onSpanChanged(text: Spannable?, what: Any?, ostart: Int, oend: Int, nstart: Int, nend: Int) {
+                        override fun onSpanChanged(
+                            text: Spannable?,
+                            what: Any?,
+                            ostart: Int,
+                            oend: Int,
+                            nstart: Int,
+                            nend: Int
+                        ) {
                         }
 
                     }, 0, length, Spannable.SPAN_INCLUSIVE_INCLUSIVE)
@@ -74,16 +87,23 @@ class RichEditText @JvmOverloads constructor(
     }
 
     var tempRemoveSpan = false
+
     fun toggle(span: Class<out RichEditTextSpan>) {
-        if (selectionStart != selectionEnd) {
-            val spans = editableText.getSpans(selectionStart, selectionEnd, span)
-            if (spans.isEmpty()) {
-                editableText.setSpan(span.newInstance(), selectionStart, selectionEnd, 0)
-            } else {
-                spans.forEach {
-                    editableText.removeSpan(it)
-                }
+        if (ParagraphStyle::class.java.isAssignableFrom(span)) {
+            val selection = selectionStart
+            var paragraphStart = selection
+            val text = text.toString()
+            while (paragraphStart > 0 && text[paragraphStart - 1] != '\n') {
+                paragraphStart--
             }
+
+            var paragraphEnd = selection
+            while (paragraphEnd < text.length && text[paragraphEnd] != '\n') {
+                paragraphEnd++
+            }
+            toggle(span, paragraphStart, paragraphEnd)
+        } else if (selectionStart != selectionEnd) {
+            toggle(span, selectionStart, selectionEnd)
         } else {
             val selection = selectionStart
             val spans = editableText.getSpans(selection, selection, span)
@@ -94,6 +114,17 @@ class RichEditText @JvmOverloads constructor(
             }
         }
 
+    }
+
+    private fun toggle(span: Class<out RichEditTextSpan>, start: Int, end: Int) {
+        val spans = editableText.getSpans(start, end, span)
+        if (spans.isEmpty()) {
+            editableText.setSpan(span.newInstance(), start, end, 0)
+        } else {
+            spans.forEach {
+                editableText.removeSpan(it)
+            }
+        }
     }
 
 }
@@ -107,3 +138,5 @@ class ItalicStyle : StyleSpan(Typeface.ITALIC), RichEditTextSpan
 class UnderlineStyle : UnderlineSpan(), RichEditTextSpan
 
 class StrikethroughStyle : StrikethroughSpan(), RichEditTextSpan
+
+class QuotaStyle : QuoteSpan(), RichEditTextSpan

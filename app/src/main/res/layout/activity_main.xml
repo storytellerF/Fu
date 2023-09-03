@@ -53,6 +53,7 @@
         android:layout_height="wrap_content">
 
         <ImageButton
+            android:id="@+id/align_left"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:src="@drawable/ic_baseline_format_align_left_24" />
