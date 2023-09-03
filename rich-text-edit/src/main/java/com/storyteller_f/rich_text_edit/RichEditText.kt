@@ -41,9 +41,7 @@ class RichEditText @JvmOverloads constructor(
                 }
             }
         })
-        inputType = EditorInfo.TYPE_TEXT_FLAG_IME_MULTI_LINE
         gravity = Gravity.TOP
-        background = null
         addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
             }
@@ -77,32 +75,35 @@ class RichEditText @JvmOverloads constructor(
 
     var tempRemoveSpan = false
     fun toggle(span: Class<out RichEditTextSpan>) {
-        val spans = editableText.getSpans(selectionStart, selectionEnd, span).filter {
-            editableText.getSpanEnd(it) == selectionStart
-        }
-        if (spans.isEmpty()) {
-            editableText.setSpan(span.newInstance(), selectionStart, selectionEnd, 0)
+        if (selectionStart != selectionEnd) {
+            val spans = editableText.getSpans(selectionStart, selectionEnd, span)
+            if (spans.isEmpty()) {
+                editableText.setSpan(span.newInstance(), selectionStart, selectionEnd, 0)
+            } else {
+                spans.forEach {
+                    editableText.removeSpan(it)
+                }
+            }
         } else {
-            tempRemoveSpan = true
+            val selection = selectionStart
+            val spans = editableText.getSpans(selection, selection, span)
+            if (spans.isEmpty()) {
+                editableText.setSpan(span.newInstance(), selection, selection, 0)
+            } else {
+                tempRemoveSpan = true
+            }
         }
+
     }
 
 }
 
 interface RichEditTextSpan
 
-class BoldStyle() : StyleSpan(Typeface.BOLD), RichEditTextSpan {
+class BoldStyle : StyleSpan(Typeface.BOLD), RichEditTextSpan
 
-}
+class ItalicStyle : StyleSpan(Typeface.ITALIC), RichEditTextSpan
 
-class ItalicStyle() : StyleSpan(Typeface.ITALIC), RichEditTextSpan {
+class UnderlineStyle : UnderlineSpan(), RichEditTextSpan
 
-}
-
-class UnderlineStyle() : UnderlineSpan(), RichEditTextSpan {
-
-}
-
-class StrikethroughStyle : StrikethroughSpan(), RichEditTextSpan {
-
-}
+class StrikethroughStyle : StrikethroughSpan(), RichEditTextSpan
