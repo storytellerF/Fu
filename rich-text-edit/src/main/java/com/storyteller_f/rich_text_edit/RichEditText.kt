@@ -2,6 +2,8 @@ package com.storyteller_f.rich_text_edit
 
 import android.content.Context
 import android.graphics.Typeface
+import android.os.Handler
+import android.os.Looper
 import android.text.Editable
 import android.text.Layout.Alignment
 import android.text.SpanWatcher
@@ -16,13 +18,36 @@ import android.text.style.StrikethroughSpan
 import android.text.style.StyleSpan
 import android.text.style.UnderlineSpan
 import android.util.AttributeSet
+import android.util.Log
 import android.view.Gravity
 import androidx.core.text.toSpannable
+import androidx.lifecycle.MutableLiveData
 
 
 class RichEditText @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
 ) : androidx.appcompat.widget.AppCompatEditText(context, attrs) {
+
+    val cursorStyle = MutableLiveData(false)
+
+    inner class DetectCursorStyle : Runnable {
+        override fun run() {
+            val spans =
+                editableText.getSpans(selectionStart, selectionEnd, UnderlineStyle::class.java)
+            if (spans.size == 1) {
+                val underlineStyle = spans.first()
+                val spanStart = editableText.getSpanStart(underlineStyle)
+                val spanEnd = editableText.getSpanEnd(
+                    underlineStyle
+                )
+                cursorStyle.value = spanStart == selectionStart && spanEnd == selectionEnd
+            } else cursorStyle.value = false
+        }
+
+    }
+
+    private val richEditHandler = Handler(Looper.getMainLooper())
+
     init {
         setEditableFactory(object : Editable.Factory() {
             override fun newEditable(source: CharSequence?): Editable {
@@ -34,6 +59,10 @@ class RichEditText @JvmOverloads constructor(
                             start: Int,
                             end: Int
                         ) {
+                            Log.d(
+                                TAG,
+                                "onSpanAdded() called with: text = $text, what = $what, start = $start, end = $end"
+                            )
                         }
 
                         override fun onSpanRemoved(
@@ -42,6 +71,10 @@ class RichEditText @JvmOverloads constructor(
                             start: Int,
                             end: Int
                         ) {
+                            Log.d(
+                                TAG,
+                                "onSpanRemoved() called with: text = $text, what = $what, start = $start, end = $end"
+                            )
                         }
 
                         override fun onSpanChanged(
@@ -52,12 +85,18 @@ class RichEditText @JvmOverloads constructor(
                             nstart: Int,
                             nend: Int
                         ) {
+                            Log.d(
+                                TAG,
+                                "onSpanChanged() called with: text = $text, what = $what, ostart = $ostart, oend = $oend, nstart = $nstart, nend = $nend"
+                            )
+                            detectStyle()
                         }
 
                     }, 0, length, Spannable.SPAN_INCLUSIVE_INCLUSIVE)
                 }
             }
         })
+
         gravity = Gravity.TOP
         addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
@@ -90,25 +129,23 @@ class RichEditText @JvmOverloads constructor(
         })
     }
 
+    private fun detectStyle() {
+        richEditHandler.removeCallbacksAndMessages(null)
+        richEditHandler.postDelayed(DetectCursorStyle(), 500)
+    }
+
     var tempRemoveSpan = false
+
+    class Paragraph(val start: Int, val end: Int)
 
     fun <T : RichEditTextSpan> toggle(
         span: Class<T>,
         factory: () -> T = { span.newInstance() },
     ) {
         if (ParagraphStyle::class.java.isAssignableFrom(span)) {
-            val selection = selectionStart
-            var paragraphStart = selection
-            val text = text.toString()
-            while (paragraphStart > 0 && text[paragraphStart - 1] != '\n') {
-                paragraphStart--
-            }
-
-            var paragraphEnd = selection
-            while (paragraphEnd < text.length && text[paragraphEnd] != '\n') {
-                paragraphEnd++
-            }
-            toggle(span, paragraphStart, paragraphEnd, factory)
+            //todo 可能选中了多个段落
+            val paragraph = currentParagraph(selectionStart)
+            toggle(span, paragraph.start, paragraph.end, factory)
         } else if (selectionStart != selectionEnd) {
             toggle(span, selectionStart, selectionEnd, factory)
         } else {
@@ -120,7 +157,21 @@ class RichEditText @JvmOverloads constructor(
                 tempRemoveSpan = true
             }
         }
+        detectStyle()
+    }
 
+    private fun currentParagraph(selection: Int): Paragraph {
+        var paragraphStart = selection
+        val text = text.toString()
+        while (paragraphStart > 0 && text[paragraphStart - 1] != '\n') {
+            paragraphStart--
+        }
+
+        var paragraphEnd = selection
+        while (paragraphEnd < text.length && text[paragraphEnd] != '\n') {
+            paragraphEnd++
+        }
+        return Paragraph(paragraphStart, paragraphEnd)
     }
 
     private fun <T : RichEditTextSpan> toggle(
@@ -134,21 +185,32 @@ class RichEditText @JvmOverloads constructor(
         if (spans.isEmpty()) {
             editableText.setSpan(instance, start, end, 0)
         } else {
-            val all = spans.all {
-                it != instance
+            //同类型，但是不想等。比如不同级别的标题
+            val filterIsInstance = spans.filterIsInstance<MultiValueStyle>()
+            val sameStyleButNotEqual = when {
+                filterIsInstance.isNotEmpty() -> filterIsInstance.all {
+                    it != instance
+                }
+                else -> false
             }
             spans.forEach {
                 editableText.removeSpan(it)
             }
-            if (all) {
+            if (sameStyleButNotEqual) {
                 editableText.setSpan(instance, start, end, 0)
             }
         }
     }
 
+    companion object {
+        private const val TAG = "RichEditText"
+    }
+
 }
 
 interface RichEditTextSpan
+
+interface MultiValueStyle
 
 class BoldStyle : StyleSpan(Typeface.BOLD), RichEditTextSpan
 
@@ -161,7 +223,7 @@ class StrikethroughStyle : StrikethroughSpan(), RichEditTextSpan
 class QuotaStyle : QuoteSpan(), RichEditTextSpan
 
 class HeadlineStyle(val head: Int) : ParagraphStyle, RichEditTextSpan,
-    RelativeSizeSpan((6 - head).toFloat()) {
+    RelativeSizeSpan((6 - head).toFloat()), MultiValueStyle {
     override fun updateDrawState(ds: TextPaint) {
         super.updateDrawState(ds)
         ds.isFakeBoldText = true
@@ -186,7 +248,8 @@ class HeadlineStyle(val head: Int) : ParagraphStyle, RichEditTextSpan,
     }
 }
 
-class AlignmentStyle(val align: Alignment) : AlignmentSpan.Standard(align), RichEditTextSpan {
+class AlignmentStyle(val align: Alignment) : AlignmentSpan.Standard(align), RichEditTextSpan,
+    MultiValueStyle {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false

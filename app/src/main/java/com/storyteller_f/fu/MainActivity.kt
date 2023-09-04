@@ -1,5 +1,7 @@
 package com.storyteller_f.fu
 
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.os.Bundle
 import android.text.Layout
 import android.widget.Button
@@ -68,6 +70,9 @@ class MainActivity : AppCompatActivity() {
                     HeadlineStyle(index + 1)
                 }
             }
+        }
+        text.cursorStyle.observe(this) {
+            underline.imageTintList = if (it) ColorStateList.valueOf(Color.RED) else ColorStateList.valueOf(Color.BLACK)
         }
     }
 }
