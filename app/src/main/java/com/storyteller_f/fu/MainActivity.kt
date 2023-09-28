@@ -64,15 +64,42 @@ class MainActivity : AppCompatActivity() {
                 AlignmentStyle(Layout.Alignment.ALIGN_NORMAL)
             }
         }
-        listOf(h1, h2, h3, h4, h5).forEachIndexed { index, button ->
+        val headlineTextViews = listOf(h1, h2, h3, h4, h5)
+        headlineTextViews.forEachIndexed { index, button ->
             button.setOnClickListener {
                 text.toggle(HeadlineStyle::class.java) {
                     HeadlineStyle(index + 1)
                 }
             }
         }
-        text.cursorStyle.observe(this) {
-            underline.imageTintList = if (it) ColorStateList.valueOf(Color.RED) else ColorStateList.valueOf(Color.BLACK)
+        text.cursorStyle.observe(this) { spans ->
+            underline.imageTintList = colorStateList(spans.any {
+                it.first == UnderlineStyle::class.java
+            })
+            bold.imageTintList = colorStateList(spans.any {
+                it.first == BoldStyle::class.java
+            })
+            italic.imageTintList = colorStateList(spans.any {
+                it.first == ItalicStyle::class.java
+            })
+            strike.imageTintList = colorStateList(spans.any {
+                it.first == StrikethroughStyle::class.java
+            })
+            val allHeadline = spans.filter {
+                it.first == HeadlineStyle::class.java
+            }.map {
+                it.second
+            }.filterIsInstance<HeadlineStyle>()
+            headlineTextViews.forEachIndexed { index, button ->
+                button.setTextColor(colorStateList(allHeadline.any {
+                    it.head == index + 1
+                }))
+            }
         }
     }
+
+    private fun colorStateList(b: Boolean) =
+        if (b) ColorStateList.valueOf(Color.RED) else ColorStateList.valueOf(
+            Color.BLACK
+        )
 }
