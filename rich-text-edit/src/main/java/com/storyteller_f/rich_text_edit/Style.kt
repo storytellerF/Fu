@@ -4,6 +4,8 @@ import android.graphics.Typeface
 import android.text.Layout
 import android.text.TextPaint
 import android.text.style.AlignmentSpan
+import android.text.style.BackgroundColorSpan
+import android.text.style.ForegroundColorSpan
 import android.text.style.ParagraphStyle
 import android.text.style.QuoteSpan
 import android.text.style.RelativeSizeSpan
@@ -33,6 +35,12 @@ class UnderlineStyle : UnderlineSpan(), RichTextStyle
 class StrikethroughStyle : StrikethroughSpan(), RichTextStyle
 
 class QuotaStyle : QuoteSpan(), RichTextStyle
+
+class ColorStyle(override val value: Int) : ForegroundColorSpan(value), RichTextStyle,
+    MultiValueStyle<Int>
+
+class BackgroundStyle(override val value: Int) : BackgroundColorSpan(value), RichTextStyle,
+    MultiValueStyle<Int>
 
 class HeadlineStyle(val head: Int) : ParagraphStyle, RichParagraphStyle,
     RelativeSizeSpan((6 - head).toFloat()), MultiValueStyle<Int> {

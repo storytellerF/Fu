@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "com.storyteller_f.fu"
-    compileSdk = 33
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.storyteller_f.fu"
         minSdk = 24
-        targetSdk = 33
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
 
@@ -31,6 +31,9 @@ android {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
+    buildFeatures {
+        viewBinding = true
+    }
     kotlinOptions {
         jvmTarget = "1.8"
     }
@@ -47,4 +50,5 @@ dependencies {
     androidTestImplementation(libs.espresso.core)
     implementation(project(":rich-text-edit"))
     implementation(project(":rich-edit-control"))
+    implementation("com.github.Dhaval2404:ColorPicker:2.3")
 }
