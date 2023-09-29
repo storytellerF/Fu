@@ -6,6 +6,7 @@ import android.os.Looper
 import android.text.Editable
 import android.text.SpanWatcher
 import android.text.Spannable
+import android.text.Spanned
 import android.text.TextWatcher
 import android.util.AttributeSet
 import android.util.Log
@@ -24,7 +25,7 @@ class RichEditText @JvmOverloads constructor(
         override fun run() {
             val selectionStart = selectionStart
             val selectionEnd = selectionEnd
-            val result = resolveStyleFill(selectionStart, selectionEnd)
+            val result = resolveStyleFill(selectionStart..selectionEnd)
             val allFilled = allFilled(result)
             Log.d(TAG, "run: $result $allFilled")
             cursorStyle.value = allFilled
@@ -120,7 +121,7 @@ class RichEditText @JvmOverloads constructor(
     private fun autoApplyStyle(start: Int, before: Int, count: Int) {
         if (count < before) return
         //actually，before is 0
-        val styleFilled = resolveStyleFill(start, start + before)
+        val styleFilled = resolveStyleFill(start..start + before)
         val allFilled = allFilled(styleFilled)
         allFilled.forEach {
             editableText.removeSpan(it.second)
@@ -132,8 +133,6 @@ class RichEditText @JvmOverloads constructor(
         richEditHandler.removeCallbacksAndMessages(null)
         richEditHandler.postDelayed(DetectCursorStyle(), 200)
     }
-
-    class Paragraph(val start: Int, val end: Int)
 
     fun <T : RichSpan> toggle(
         span: Class<T>,
@@ -148,7 +147,7 @@ class RichEditText @JvmOverloads constructor(
         } else if (interfaces.any {
                 it == RichTextStyle::class.java
             }) {
-            toggleText(span, factory)
+            toggleText(span, selectionRange, factory)
         } else throw Exception("unrecognized ${span.javaClass}")
         detectStyleAtCursor()
     }
@@ -190,20 +189,65 @@ class RichEditText @JvmOverloads constructor(
         }
     }
 
-    private fun <T : RichSpan> toggleText(span: Class<T>, factory: () -> T) {
+    private fun <T : RichSpan> toggleText(span: Class<T>, selectionRange: IntRange, factory: () -> T) {
         val instance = factory()
-        val result = resolveStyleFill(selectionStart, selectionEnd)
+        val result = resolveStyleFill(selectionRange)
         val current = result[span].orEmpty()
+
+        /**
+         * 仅能覆盖部分选中区域。需要注意还存在选中区域以外的部分
+         */
         val unFilled = current.filter {
             it.byBroken || !it.coverResult.covered()
         }
+
+        /**
+         * 完全覆盖选中区域，不过也有可能存在选中区域以外的部分。
+         */
         val filled = current.minus(unFilled.toSet())
-        //todo 处理cover的情况
-        if (filled.isEmpty()) {
-            unFilled.forEach {
+        if (filled.isEmpty()) {//没有完整覆盖，相当于此处没有此样式，需要打开样式
+            val atInner = unFilled.filter {
+                it.range inner selectionRange
+            }
+            atInner.forEach {
                 editableText.removeSpan(it.span)
             }
-            editableText.setSpan(instance, selectionStart, selectionEnd, 0)
+            /**
+             * 因为存在超过选中区域以外的部分，最好的办法就是扩展此样式的范围。
+             * 注意同时存在左右两个partial，如果有两个也需要移除掉一个。
+             * 同时还需要注意新添加的span 可能与现有的不完全相同，
+             * 存在MultiValueStyle 的问题。如果存在，需要切割原有的style
+             */
+            if (span.interfaces.any {
+                    it == MultiValueStyle::class.java
+                }) {
+                unFilled.filter {
+                    it.range leftPartial selectionRange
+                }.forEach {
+                    editableText.setSpan(it.span, it.range.first, selectionRange.first, 0)
+                }
+                unFilled.filter {
+                    it.range rightPartial selectionRange
+                }.forEach {
+                    editableText.setSpan(it.span, selectionRange.last, it.range.last, 0)
+                }
+                editableText.setSpan(instance, selectionRange, 0)
+            } else {
+                val left = unFilled.filter {
+                    it.range leftPartial selectionRange
+                }.minOfOrNull {
+                    it.range.first
+                } ?: selectionRange.first
+                val right = unFilled.filter {
+                    it.range rightPartial selectionRange
+                }.minOfOrNull {
+                    it.range.last
+                } ?: selectionRange.last
+                unFilled.minus(atInner.toSet()).forEach {
+                    editableText.removeSpan(it.span)
+                }
+                editableText.setSpan(instance, left, right, 0)
+            }
         } else {
             current.forEach {
                 editableText.removeSpan(it.span)
@@ -211,37 +255,37 @@ class RichEditText @JvmOverloads constructor(
         }
     }
 
+    private val selectionRange get() = selectionStart..selectionEnd
+
     /**
      * 获取选定范围内的所有样式。同一种style 可能对应多个Result，因为在更长范围，存在两个不相连的区块，否则应该就是一个Result。
      */
     private fun resolveStyleFill(
-        selectionStart: Int,
-        selectionEnd: Int
+        selectionRange: IntRange
     ): Map<Class<out RichSpan>, List<FillResult>> {
         //选中区域所有的样式
         val spans =
-            editableText.getSpans(selectionStart, selectionEnd, RichSpan::class.java)
+            editableText.getSpans(selectionRange, RichSpan::class.java)
         val allBreaks =
-            editableText.getSpans(selectionStart, selectionEnd, Break::class.java).groupBy {
+            editableText.getSpans(selectionRange, Break::class.java).groupBy {
                 it.style
             }
         //选中区域被填充的样式
-        return spans.map {
-            val start = editableText.getSpanStart(it)
-            val end = editableText.getSpanEnd(it)
-            val beCovered = start < selectionStart && selectionEnd < end
-            val equaled = start == selectionStart && end == selectionEnd
-            val currentStyleBreaks = allBreaks[it::class.java]
-            val spanScopeStart = start.coerceAtLeast(selectionStart)
-            val spanScopeEnd = end.coerceAtMost(selectionEnd)
+        return spans.map { span ->
+            val spanRange = editableText.getSpanRange(span)
+            val beCovered = spanRange cover selectionRange
+            val equaled = spanRange == selectionRange
+            val currentStyleBreaks = allBreaks[span::class.java]
+            val spanScopeRange = spanRange.coerce(selectionRange)
             val byBroken = if (currentStyleBreaks.isNullOrEmpty()) {
                 false
             } else {
                 currentStyleBreaks.any {
                     val breakStart = editableText.getSpanStart(it)
                     val breakEnd = editableText.getSpanEnd(it)
+                    val breakRange = breakStart..breakEnd
                     //break 需要至少需要占据选中范围内的style
-                    breakStart <= spanScopeStart && breakEnd <= spanScopeEnd
+                    breakRange cover spanScopeRange
                 }
             }
             val coverResult =
@@ -250,7 +294,7 @@ class RichEditText @JvmOverloads constructor(
                     equaled -> CoverResult.Equaled
                     else -> CoverResult.None
                 }
-            FillResult(it, coverResult, byBroken, start, end)
+            FillResult(span, coverResult, byBroken, spanRange)
         }.groupBy {
             it.span.javaClass
         }
@@ -260,4 +304,43 @@ class RichEditText @JvmOverloads constructor(
         private const val TAG = "RichEditText"
     }
 
+}
+
+private fun <T> Spannable.setSpan(instance: T, selectionRange: IntRange, flag: Int) {
+    setSpan(instance, selectionRange.first, selectionRange.last, flag)
+}
+
+private fun <T> Spanned.getSpans(selectionRange: IntRange, java: Class<T>): Array<out T> {
+    return getSpans(selectionRange.first, selectionRange.last, java)
+}
+
+infix fun <T : Comparable<T>> ClosedRange<T>.cover(range: ClosedRange<T>) =
+    start <= range.start && range.endInclusive <= endInclusive
+
+infix fun <T : Comparable<T>> ClosedRange<T>.coerce(range: ClosedRange<T>) =
+    start.coerceAtLeast(range.start)..endInclusive.coerceAtLeast(range.endInclusive)
+
+infix fun <T : Comparable<T>> ClosedRange<T>.partial(range: ClosedRange<T>): Boolean {
+    val leftPartial =
+        start < range.start && range.start < endInclusive && endInclusive < range.endInclusive
+    val rightPartial = start < range.endInclusive && range.endInclusive < endInclusive
+    return leftPartial || rightPartial
+}
+
+infix fun <T : Comparable<T>> ClosedRange<T>.leftPartial(range: ClosedRange<T>): Boolean {
+    return start < range.start && range.start < endInclusive && endInclusive < range.endInclusive
+}
+
+infix fun <T : Comparable<T>> ClosedRange<T>.rightPartial(range: ClosedRange<T>): Boolean {
+    return start < range.endInclusive && range.endInclusive < endInclusive
+}
+
+infix fun <T : Comparable<T>> ClosedRange<T>.inner(range: ClosedRange<T>): Boolean {
+    return range.start < start && endInclusive < range.endInclusive
+}
+
+private fun Editable.getSpanRange(span: RichSpan): IntRange {
+    val start = getSpanStart(span)
+    val end = getSpanEnd(span)
+    return start..end
 }

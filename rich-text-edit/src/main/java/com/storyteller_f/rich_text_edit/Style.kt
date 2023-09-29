@@ -82,3 +82,5 @@ class AlignmentStyle(val align: Layout.Alignment) : AlignmentSpan.Standard(align
         return align.hashCode()
     }
 }
+
+class Paragraph(val start: Int, val end: Int)

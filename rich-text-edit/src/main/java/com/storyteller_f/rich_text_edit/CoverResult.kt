@@ -10,10 +10,9 @@ enum class CoverResult {
 
 
 
-class FillResult(
+data class FillResult(
     val span: RichSpan,
     val coverResult: CoverResult,
     val byBroken: Boolean,
-    val start: Int,
-    val end: Int
+    val range: IntRange
 )
