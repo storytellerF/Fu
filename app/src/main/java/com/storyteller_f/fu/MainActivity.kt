@@ -76,11 +76,12 @@ class MainActivity : AppCompatActivity() {
                 }
                 .show()
         }
+        val headline = listOf(3f, 2.5f, 2f, 1.5f, 1.2f)
         val headlineTextViews = listOf(binding.h1, binding.h2, binding.h3, binding.h4, binding.h5)
         headlineTextViews.forEachIndexed { index, button ->
             button.setOnClickListener {
                 richEditText.toggle(HeadlineStyle::class.java) {
-                    HeadlineStyle(index + 1)
+                    HeadlineStyle(index + 1, headline[index])
                 }
             }
         }
@@ -104,7 +105,7 @@ class MainActivity : AppCompatActivity() {
             }.filterIsInstance<HeadlineStyle>()
             headlineTextViews.forEachIndexed { index, button ->
                 button.setTextColor(colorStateList(allHeadline.any {
-                    it.head == index + 1
+                    it.value == index + 1
                 }))
             }
             binding.foreground.setTextColor((spans.firstOrNull {

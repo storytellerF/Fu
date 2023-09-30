@@ -42,8 +42,8 @@ class ColorStyle(override val value: Int) : ForegroundColorSpan(value), RichText
 class BackgroundStyle(override val value: Int) : BackgroundColorSpan(value), RichTextStyle,
     MultiValueStyle<Int>
 
-class HeadlineStyle(val head: Int) : ParagraphStyle, RichParagraphStyle,
-    RelativeSizeSpan((6 - head).toFloat()), MultiValueStyle<Int> {
+class HeadlineStyle(override val value: Int, proportion: Float) : ParagraphStyle, RichParagraphStyle,
+    RelativeSizeSpan(proportion), MultiValueStyle<Int> {
     override fun updateDrawState(ds: TextPaint) {
         super.updateDrawState(ds)
         ds.isFakeBoldText = true
@@ -54,20 +54,17 @@ class HeadlineStyle(val head: Int) : ParagraphStyle, RichParagraphStyle,
         ds.isFakeBoldText = true
     }
 
-    override val value: Int
-        get() = head
-
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
 
         other as HeadlineStyle
 
-        return head == other.head
+        return value == other.value
     }
 
     override fun hashCode(): Int {
-        return head
+        return value
     }
 }
 
