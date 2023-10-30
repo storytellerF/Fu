@@ -81,7 +81,7 @@ class MainActivity : AppCompatActivity() {
         headlineTextViews.forEachIndexed { index, button ->
             button.setOnClickListener {
                 richEditText.toggle(HeadlineStyle::class.java) {
-                    HeadlineStyle(index + 1, headline[index])
+                    HeadlineStyle(index + 1, headline[index], this)
                 }
             }
         }

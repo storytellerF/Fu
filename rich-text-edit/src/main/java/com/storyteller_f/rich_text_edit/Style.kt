@@ -1,6 +1,8 @@
 package com.storyteller_f.rich_text_edit
 
+import android.content.Context
 import android.graphics.Typeface
+import android.graphics.fonts.FontStyle
 import android.text.Layout
 import android.text.TextPaint
 import android.text.style.AlignmentSpan
@@ -12,9 +14,18 @@ import android.text.style.RelativeSizeSpan
 import android.text.style.StrikethroughSpan
 import android.text.style.StyleSpan
 import android.text.style.UnderlineSpan
+import androidx.core.graphics.TypefaceCompat
 
-
-interface RichSpan
+/**
+ * 所有的style 都应该是独立的，不可以使用多个style 完成一个功能。
+ */
+interface RichSpan {
+    /**
+     * 无法共存的style。
+     */
+    val conflict: List<Class<out RichSpan>>
+        get() = emptyList()
+}
 
 interface RichTextStyle : RichSpan
 
@@ -42,16 +53,26 @@ class ColorStyle(override val value: Int) : ForegroundColorSpan(value), RichText
 class BackgroundStyle(override val value: Int) : BackgroundColorSpan(value), RichTextStyle,
     MultiValueStyle<Int>
 
-class HeadlineStyle(override val value: Int, proportion: Float) : ParagraphStyle, RichParagraphStyle,
+class HeadlineStyle(override val value: Int, proportion: Float, private val context: Context) :
+    ParagraphStyle, RichParagraphStyle,
     RelativeSizeSpan(proportion), MultiValueStyle<Int> {
     override fun updateDrawState(ds: TextPaint) {
         super.updateDrawState(ds)
-        ds.isFakeBoldText = true
+        updateTypeface(ds)
     }
 
     override fun updateMeasureState(ds: TextPaint) {
         super.updateMeasureState(ds)
-        ds.isFakeBoldText = true
+        updateTypeface(ds)
+    }
+
+    /**
+     * FontStyle.FONT_WEIGHT_BOLD 需要至少api 29
+     */
+    private fun updateTypeface(ds: TextPaint) {
+        val typeface = ds.typeface
+        val create = TypefaceCompat.create(context, typeface, 700, typeface.isItalic)
+        ds.typeface = create
     }
 
     override fun equals(other: Any?): Boolean {
@@ -63,9 +84,10 @@ class HeadlineStyle(override val value: Int, proportion: Float) : ParagraphStyle
         return value == other.value
     }
 
-    override fun hashCode(): Int {
-        return value
-    }
+    override fun hashCode() = value
+
+    override val conflict: List<Class<out RichSpan>>
+        get() = listOf(BoldStyle::class.java)
 }
 
 class AlignmentStyle(val align: Layout.Alignment) : AlignmentSpan.Standard(align),

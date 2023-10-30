@@ -15,7 +15,7 @@ import androidx.appcompat.widget.AppCompatEditText
 import androidx.lifecycle.MutableLiveData
 
 
-class RichEditText @JvmOverloads constructor(
+class FuEditText @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
 ) : AppCompatEditText(context, attrs) {
 
@@ -25,7 +25,7 @@ class RichEditText @JvmOverloads constructor(
         override fun run() {
             val selectionStart = selectionStart
             val selectionEnd = selectionEnd
-            val result = resolveStyleFill(selectionStart..selectionEnd)
+            val result = resolveStyleFilled(selectionStart..selectionEnd)
             val allFilled = allFilled(result)
             Log.d(TAG, "run: $result $allFilled")
             cursorStyle.value = allFilled
@@ -121,7 +121,7 @@ class RichEditText @JvmOverloads constructor(
     private fun autoApplyStyle(start: Int, before: Int, count: Int) {
         if (count < before) return
         //actually，before is 0
-        val styleFilled = resolveStyleFill(start..start + before)
+        val styleFilled = resolveStyleFilled(start..start + before)
         val allFilled = allFilled(styleFilled)
         allFilled.forEach {
             editableText.removeSpan(it.second)
@@ -189,78 +189,125 @@ class RichEditText @JvmOverloads constructor(
         }
     }
 
-    private fun <T : RichSpan> toggleText(span: Class<T>, selectionRange: IntRange, factory: () -> T) {
+    private fun <T : RichSpan> toggleText(
+        span: Class<T>,
+        selectionRange: IntRange,
+        factory: () -> T
+    ) {
         val instance = factory()
-        val result = resolveStyleFill(selectionRange)
-        val current = result[span].orEmpty()
+        if (instance.conflict.isNotEmpty()) {
+            instance.conflict.map {
+                resolveStyleFilled(selectionRange, span)
+            }
+        }
+        val result = resolveStyleFilled(selectionRange, span)
 
-        /**
-         * 仅能覆盖部分选中区域。需要注意还存在选中区域以外的部分
-         */
-        val unFilled = current.filter {
+        val (unfilled, filled) = result.separate {
             it.byBroken || !it.coverResult.covered()
         }
 
-        /**
-         * 完全覆盖选中区域，不过也有可能存在选中区域以外的部分。
-         */
-        val filled = current.minus(unFilled.toSet())
-        if (filled.isEmpty()) {//没有完整覆盖，相当于此处没有此样式，需要打开样式
-            val atInner = unFilled.filter {
-                it.range inner selectionRange
+        if (filled.isEmpty()) {
+            /**
+             * 没有完整覆盖，相当于此处没有此样式，需要打开样式
+             */
+            val clearCutStyle = clearCutStyle(
+                span,
+                selectionRange,
+                unfilled
+            )
+            editableText.setSpan(instance, clearCutStyle, 0)
+        } else {
+            /**
+             * 完全覆盖选中区域，不过也有可能存在选中区域以外的部分。
+             */
+            val (atPartial, other) = result.separate {
+                it.range partial selectionRange
             }
-            atInner.forEach {
+            other.forEach {
                 editableText.removeSpan(it.span)
             }
+            clearCut(atPartial, selectionRange)
+        }
+    }
+
+    /**
+     * 填充样式。
+     */
+    private fun <T : RichSpan> clearCutStyle(
+        span: Class<T>,
+        selectionRange: IntRange,
+        unfilled: List<FillResult>
+    ): IntRange {
+        val (atInner, atPartial) = unfilled.separate {
+            it.range inner selectionRange
+        }
+        atInner.forEach {
+            editableText.removeSpan(it.span)
+        }
+        return if (span.interfaces.any {
+                it == MultiValueStyle::class.java
+            }) {
             /**
-             * 因为存在超过选中区域以外的部分，最好的办法就是扩展此样式的范围。
-             * 注意同时存在左右两个partial，如果有两个也需要移除掉一个。
-             * 同时还需要注意新添加的span 可能与现有的不完全相同，
+             * 需要注意新添加的span 可能与现有的不完全相同，
              * 存在MultiValueStyle 的问题。如果存在，需要切割原有的style
              */
-            if (span.interfaces.any {
-                    it == MultiValueStyle::class.java
-                }) {
-                unFilled.filter {
-                    it.range leftPartial selectionRange
-                }.forEach {
-                    editableText.setSpan(it.span, it.range.first, selectionRange.first, 0)
-                }
-                unFilled.filter {
-                    it.range rightPartial selectionRange
-                }.forEach {
-                    editableText.setSpan(it.span, selectionRange.last, it.range.last, 0)
-                }
-                editableText.setSpan(instance, selectionRange, 0)
-            } else {
-                val left = unFilled.filter {
-                    it.range leftPartial selectionRange
-                }.minOfOrNull {
-                    it.range.first
-                } ?: selectionRange.first
-                val right = unFilled.filter {
-                    it.range rightPartial selectionRange
-                }.minOfOrNull {
-                    it.range.last
-                } ?: selectionRange.last
-                unFilled.minus(atInner.toSet()).forEach {
-                    editableText.removeSpan(it.span)
-                }
-                editableText.setSpan(instance, left, right, 0)
-            }
+            clearCut(atPartial, selectionRange)
+            selectionRange
         } else {
-            current.forEach {
+            //原有的style 全部移除
+            val left = atPartial.filter {
+                it.range leftPartial selectionRange
+            }.minOfOrNull {
+                it.range.first
+            } ?: selectionRange.first
+            val right = atPartial.filter {
+                it.range rightPartial selectionRange
+            }.minOfOrNull {
+                it.range.last
+            } ?: selectionRange.last
+            atPartial.forEach {
                 editableText.removeSpan(it.span)
             }
+            left..right
+        }
+    }
+
+    private fun clearCut(
+        atPartial: List<FillResult>,
+        selectionRange: IntRange
+    ) {
+        atPartial.filter {
+            it.range leftPartial selectionRange
+        }.forEach {
+            editableText.setSpan(it.span, it.range.first, selectionRange.first, 0)
+        }
+        atPartial.filter {
+            it.range rightPartial selectionRange
+        }.forEach {
+            editableText.setSpan(it.span, selectionRange.last, it.range.last, 0)
         }
     }
 
     private val selectionRange get() = selectionStart..selectionEnd
 
+    private fun resolveStyleFilled(selectionRange: IntRange, span: Class<out RichSpan>): List<FillResult> {
+        //选中区域所有的样式
+        val spans =
+            editableText.getSpans(selectionRange, span)
+        val allBreaks =
+            editableText.getSpans(selectionRange, Break::class.java).filter {
+                it.style == span
+            }.groupBy {
+                it.style
+            }
+        //选中区域被填充的样式
+        return map(spans, selectionRange, allBreaks)[span].orEmpty()
+    }
+
     /**
      * 获取选定范围内的所有样式。同一种style 可能对应多个Result，因为在更长范围，存在两个不相连的区块，否则应该就是一个Result。
      */
-    private fun resolveStyleFill(
+    private fun resolveStyleFilled(
         selectionRange: IntRange
     ): Map<Class<out RichSpan>, List<FillResult>> {
         //选中区域所有的样式
@@ -271,6 +318,14 @@ class RichEditText @JvmOverloads constructor(
                 it.style
             }
         //选中区域被填充的样式
+        return map(spans, selectionRange, allBreaks)
+    }
+
+    private fun map(
+        spans: Array<out RichSpan>,
+        selectionRange: IntRange,
+        allBreaks: Map<Class<RichSpan>, List<Break>>
+    ): Map<Class<out RichSpan>, List<FillResult>> {
         return spans.map { span ->
             val spanRange = editableText.getSpanRange(span)
             val beCovered = spanRange cover selectionRange
@@ -343,4 +398,26 @@ private fun Editable.getSpanRange(span: RichSpan): IntRange {
     val start = getSpanStart(span)
     val end = getSpanEnd(span)
     return start..end
+}
+
+fun <T> Iterable<T>.separate(block: (T) -> Boolean): Pair<List<T>, List<T>> {
+    val groupBy = groupBy {
+        block(it)
+    }
+    return groupBy[true].orEmpty() to groupBy[false].orEmpty()
+}
+
+enum class Third {
+    NEGATIVE, NEUTRAL, POSITIVE
+}
+
+fun <T> Iterable<T>.separateTriple(block: (T) -> Third): Triple<List<T>, List<T>, List<T>> {
+    val groupBy = groupBy {
+        block(it)
+    }
+    return Triple(
+        groupBy[Third.NEGATIVE].orEmpty(),
+        groupBy[Third.NEGATIVE].orEmpty(),
+        groupBy[Third.POSITIVE].orEmpty()
+    )
 }

@@ -48,7 +48,8 @@
             android:id="@+id/change_text_color"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="⬇️" />
+            android:minWidth="0dp"
+            android:text="✏️" />
 
         <TextView
             android:id="@+id/background"
@@ -63,7 +64,8 @@
             android:id="@+id/change_background_color"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="⬇️" />
+            android:minWidth="0dp"
+            android:text="✏️" />
 
     </LinearLayout>
 
@@ -79,30 +81,35 @@
                 android:id="@+id/h1"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:minWidth="0dp"
                 android:text="h1" />
 
             <Button
                 android:id="@+id/h2"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:minWidth="0dp"
                 android:text="h2" />
 
             <Button
                 android:id="@+id/h3"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:minWidth="0dp"
                 android:text="h3" />
 
             <Button
                 android:id="@+id/h4"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:minWidth="0dp"
                 android:text="h4" />
 
             <Button
                 android:id="@+id/h5"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:minWidth="0dp"
                 android:text="h5" />
         </LinearLayout>
     </HorizontalScrollView>
@@ -136,11 +143,12 @@
             android:src="@drawable/ic_baseline_format_quote_24" />
     </LinearLayout>
 
-    <com.storyteller_f.rich_text_edit.RichEditText
+    <com.storyteller_f.rich_text_edit.FuEditText
         android:id="@+id/text"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
+        android:fontFamily="@font/montserrat"
         android:text="Hello World!" />
 
 </LinearLayout>
