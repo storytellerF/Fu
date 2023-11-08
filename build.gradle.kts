@@ -4,5 +4,6 @@ plugins {
     alias(libs.plugins.androidApplication) apply false
     alias(libs.plugins.kotlinAndroid) apply false
     alias(libs.plugins.androidLibrary) apply false
+    id("org.jetbrains.kotlinx.kover") version "0.7.4"
 }
 true // Needed to make the Suppress annotation work for the plugins block
