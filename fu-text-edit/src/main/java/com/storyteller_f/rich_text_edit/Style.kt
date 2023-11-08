@@ -110,4 +110,4 @@ class AlignmentStyle(val align: Layout.Alignment) : AlignmentSpan.Standard(align
     }
 }
 
-class Paragraph(val start: Int, val end: Int)
+data class Paragraph(val start: Int, val end: Int)

@@ -4,7 +4,7 @@ import android.text.Spannable
 import android.text.Spanned
 import android.widget.TextView
 
-private fun CharSequence.currentParagraph(selection: Int): Paragraph {
+fun CharSequence.currentParagraph(selection: Int): Paragraph {
     var paragraphStart = selection
     val text = this
     while (paragraphStart > 0 && text[paragraphStart - 1] != '\n') {
