@@ -48,7 +48,7 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.espresso.core)
-    implementation(project(":rich-text-edit"))
-    implementation(project(":rich-edit-control"))
+    implementation(project(":fu-text-edit"))
+    implementation(project(":fu-edit-control"))
     implementation("com.github.Dhaval2404:ColorPicker:2.3")
 }

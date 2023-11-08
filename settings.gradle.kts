@@ -18,5 +18,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "Fu"
 include(":app")
-include(":rich-text-edit")
-include(":rich-edit-control")
+include(":fu-text-edit")
+include(":fu-edit-control")
