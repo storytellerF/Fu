@@ -3,6 +3,26 @@ package com.storyteller_f.rich_text_edit
 import android.text.Spannable
 import android.text.Spanned
 
+fun <T : RichSpan> Spannable.toggle(
+    selectionRange: IntRange,
+    span: Class<T>,
+    factory: () -> T,
+    detectStyleAtCursor: () -> Unit
+) {
+    val interfaces = span.interfaces
+    if (interfaces.any {
+            it == RichParagraphStyle::class.java
+        }) {
+        val paragraph = currentParagraph(selectionRange.first)
+        toggleParagraph(span, paragraph, factory)
+    } else if (interfaces.any {
+            it == RichTextStyle::class.java
+        }) {
+        toggleText(span, selectionRange, factory)
+    } else throw Exception("unrecognized ${span.javaClass}")
+    detectStyleAtCursor()
+}
+
 fun <T : RichSpan> Spannable.toggleParagraph(
     span: Class<T>,
     paragraph: Paragraph,
@@ -208,3 +228,29 @@ private fun Spanned.groupAtSelection(
         it.span.javaClass
     }
 }
+
+fun CharSequence.currentParagraph(selection: Int): Paragraph {
+    var paragraphStart = selection
+    val text = this
+    while (paragraphStart > 0 && text[paragraphStart - 1] != '\n') {
+        paragraphStart--
+    }
+
+    var paragraphEnd = selection
+    while (paragraphEnd < text.length && text[paragraphEnd] != '\n') {
+        paragraphEnd++
+    }
+    return Paragraph(paragraphStart, paragraphEnd)
+}
+
+/**
+ * 指定区域存在完整的样式。
+ */
+fun Map<Class<out RichSpan>, List<FillResult>>.allFilled() =
+    mapNotNull { entry ->
+        if (entry.value.any {
+                it.coverResult.covered() && !it.byBroken
+            }) {
+            entry.key to entry.value.first().span
+        } else null
+    }

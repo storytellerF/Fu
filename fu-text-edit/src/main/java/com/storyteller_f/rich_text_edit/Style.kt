@@ -2,7 +2,6 @@ package com.storyteller_f.rich_text_edit
 
 import android.content.Context
 import android.graphics.Typeface
-import android.graphics.fonts.FontStyle
 import android.text.Layout
 import android.text.TextPaint
 import android.text.style.AlignmentSpan
