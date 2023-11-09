@@ -32,7 +32,7 @@ fun Map<Class<out RichSpan>, List<FillResult>>.allFilled() =
 
 val TextView.selectionRange get() = selectionStart..selectionEnd
 
-fun <T : RichSpan> Spannable.toggleInternal(
+fun <T : RichSpan> Spannable.toggle(
     selectionRange: IntRange,
     span: Class<T>,
     factory: () -> T,
@@ -108,7 +108,7 @@ fun <T> Iterable<T>.separateTriple(block: (T) -> Third): Triple<List<T>, List<T>
     }
     return Triple(
         groupBy[Third.NEGATIVE].orEmpty(),
-        groupBy[Third.NEGATIVE].orEmpty(),
+        groupBy[Third.NEUTRAL].orEmpty(),
         groupBy[Third.POSITIVE].orEmpty()
     )
 }

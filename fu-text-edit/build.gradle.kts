@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.storyteller_f.rich_text_edit"
-    compileSdk = 33
+    compileSdk = 34
 
     defaultConfig {
         minSdk = 24
@@ -41,4 +41,5 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.espresso.core)
+    testImplementation("org.mockito:mockito-core:3.+")
 }

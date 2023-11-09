@@ -109,7 +109,7 @@ class FuEditText @JvmOverloads constructor(
     fun <T : RichSpan> toggle(
         span: Class<T>,
         factory: () -> T = { span.newInstance() },
-    ) = editableText.toggleInternal(selectionRange, span, factory, ::detectStyleAtCursor)
+    ) = editableText.toggle(selectionRange, span, factory, ::detectStyleAtCursor)
 
     companion object {
         private const val TAG = "RichEditText"

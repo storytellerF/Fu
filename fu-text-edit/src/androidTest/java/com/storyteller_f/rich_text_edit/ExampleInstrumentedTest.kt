@@ -1,5 +1,6 @@
 package com.storyteller_f.rich_text_edit
 
+import android.text.SpannableStringBuilder
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
 
@@ -20,5 +21,26 @@ class ExampleInstrumentedTest {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
         assertEquals("com.storyteller_f.rich_text_edit.test", appContext.packageName)
+    }
+
+    @Test
+    fun testApplyTextStyle() {
+        val editable = SpannableStringBuilder().apply {
+            append("hello")
+        }
+        val intRange = 0..4
+        editable.toggle(intRange, BoldStyle::class.java, {
+            BoldStyle()
+        }) {
+            val spans = editable.getSpans(intRange, BoldStyle::class.java)
+            assertEquals(1, spans.size)
+            assert(editable.getSpanRange(spans.first()) == intRange)
+        }
+        editable.toggle(intRange, BoldStyle::class.java, {
+            BoldStyle()
+        }) {
+            val spans = editable.getSpans(intRange, BoldStyle::class.java)
+            assert(spans.isEmpty())
+        }
     }
 }
