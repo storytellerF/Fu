@@ -1,13 +1,11 @@
 package com.storyteller_f.rich_text_edit
 
 import android.text.SpannableStringBuilder
-import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
-
+import androidx.test.platform.app.InstrumentationRegistry
+import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
-
-import org.junit.Assert.*
 
 /**
  * Instrumented test, which will execute on an Android device.
@@ -29,18 +27,28 @@ class ExampleInstrumentedTest {
             append("hello")
         }
         val intRange = 0..4
-        editable.toggle(intRange, BoldStyle::class.java, {
-            BoldStyle()
-        }) {
+        editable.toggle(intRange, BoldStyle::class.java) {
             val spans = editable.getSpans(intRange, BoldStyle::class.java)
             assertEquals(1, spans.size)
             assert(editable.getSpanRange(spans.first()) == intRange)
         }
-        editable.toggle(intRange, BoldStyle::class.java, {
-            BoldStyle()
-        }) {
+        editable.toggle(intRange, BoldStyle::class.java) {
             val spans = editable.getSpans(intRange, BoldStyle::class.java)
             assert(spans.isEmpty())
+        }
+    }
+
+    @Test
+    fun testApplyTextStyleWhenTwoExists() {
+        val editable = SpannableStringBuilder().apply {
+            append("hello")
+        }
+        editable.toggle(0..1, BoldStyle::class.java)
+        editable.toggle(2..3, BoldStyle::class.java)
+        editable.toggle(0 .. 3, BoldStyle::class.java) {
+            val styles = editable.getSpans(0..3, BoldStyle::class.java)
+            assertEquals(1, styles.size)
+            assertEquals(0..3, editable.getSpanRange(styles.first()))
         }
     }
 }

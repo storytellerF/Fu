@@ -12,7 +12,7 @@ import org.junit.Assert.*
 class ExampleUnitTest {
     @Test
     fun addition_isCorrect() {
-        assertEquals(Paragraph(0, 4), "test\nhello".currentParagraph(1))
-        assertEquals(Paragraph(5, 10), "test\nhello".currentParagraph(6))
+        assertEquals(Paragraph(0, 4), "test\nhello".paragraphAt(1))
+        assertEquals(Paragraph(5, 10), "test\nhello".paragraphAt(6))
     }
 }

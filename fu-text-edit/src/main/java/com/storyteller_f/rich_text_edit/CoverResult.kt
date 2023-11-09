@@ -1,11 +1,22 @@
 package com.storyteller_f.rich_text_edit
 
 enum class CoverResult {
-    None, Covered, Equaled;
+    /**
+     * 无法填充指定范围
+     */
+    None,
 
-    fun covered(): Boolean {
-        return this == Covered || this == Equaled
-    }
+    /**
+     * 超过指定范围
+     */
+    Covered,
+
+    /**
+     * 和范围完全相同，与Covered 排斥
+     */
+    Equaled;
+
+    val covered get() = this == Covered || this == Equaled
 }
 
 

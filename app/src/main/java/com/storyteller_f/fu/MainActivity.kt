@@ -39,28 +39,20 @@ class MainActivity : AppCompatActivity() {
             richEditText.toggle(QuotaStyle::class.java)
         }
         binding.alignRight.setOnClickListener {
-            richEditText.toggle(AlignmentStyle::class.java) {
-                AlignmentStyle(Layout.Alignment.ALIGN_OPPOSITE)
-            }
+            richEditText.toggle(AlignmentStyle::class.java, AlignmentStyle(Layout.Alignment.ALIGN_OPPOSITE))
         }
         binding.alignCenter.setOnClickListener {
-            richEditText.toggle(AlignmentStyle::class.java) {
-                AlignmentStyle(Layout.Alignment.ALIGN_CENTER)
-            }
+            richEditText.toggle(AlignmentStyle::class.java, AlignmentStyle(Layout.Alignment.ALIGN_CENTER))
         }
         binding.alignLeft.setOnClickListener {
-            richEditText.toggle(AlignmentStyle::class.java) {
-                AlignmentStyle(Layout.Alignment.ALIGN_NORMAL)
-            }
+            richEditText.toggle(AlignmentStyle::class.java, AlignmentStyle(Layout.Alignment.ALIGN_NORMAL))
         }
         binding.changeTextColor.setOnClickListener {
             // Kotlin Code
             ColorPickerDialog
                 .Builder(this)        				// Pass Activity Instance
                 .setColorListener { color, _ ->
-                    richEditText.toggle(ColorStyle::class.java) {
-                        ColorStyle(color)
-                    }
+                    richEditText.toggle(ColorStyle::class.java, ColorStyle(color))
                 }
                 .show()
         }
@@ -70,9 +62,7 @@ class MainActivity : AppCompatActivity() {
             ColorPickerDialog
                 .Builder(this)        				// Pass Activity Instance
                 .setColorListener { color, _ ->
-                    richEditText.toggle(BackgroundStyle::class.java) {
-                        BackgroundStyle(color)
-                    }
+                    richEditText.toggle(BackgroundStyle::class.java, BackgroundStyle(color))
                 }
                 .show()
         }
@@ -80,9 +70,7 @@ class MainActivity : AppCompatActivity() {
         val headlineTextViews = listOf(binding.h1, binding.h2, binding.h3, binding.h4, binding.h5)
         headlineTextViews.forEachIndexed { index, button ->
             button.setOnClickListener {
-                richEditText.toggle(HeadlineStyle::class.java) {
-                    HeadlineStyle(index + 1, headline[index], this)
-                }
+                richEditText.toggle(HeadlineStyle::class.java, HeadlineStyle(index + 1, headline[index], this))
             }
         }
         richEditText.cursorStyle.observe(this) { spans ->

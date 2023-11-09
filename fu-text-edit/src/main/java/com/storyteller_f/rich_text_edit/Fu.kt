@@ -5,35 +5,39 @@ import android.text.Spanned
 
 fun <T : RichSpan> Spannable.toggle(
     selectionRange: IntRange,
-    span: Class<T>,
-    factory: () -> T,
-    detectStyleAtCursor: () -> Unit
+    spanType: Class<T>,
+    detectStyleAtCursor: () -> Unit = {},
+) =
+    toggle(selectionRange, spanType, spanType.getConstructor().newInstance(), detectStyleAtCursor)
+
+fun <T : RichSpan> Spannable.toggle(
+    selectionRange: IntRange,
+    spanType: Class<T>,
+    factory: T,
+    detectStyleAtCursor: () -> Unit = {},
 ) {
-    val interfaces = span.interfaces
+    val interfaces = spanType.interfaces
     if (interfaces.any {
             it == RichParagraphStyle::class.java
         }) {
-        val paragraph = currentParagraph(selectionRange.first)
-        toggleParagraph(span, paragraph, factory)
+        val paragraph = paragraphAt(selectionRange.first)
+        toggleParagraph(paragraph, spanType, factory)
     } else if (interfaces.any {
             it == RichTextStyle::class.java
         }) {
-        toggleText(span, selectionRange, factory)
-    } else throw Exception("unrecognized ${span.javaClass}")
+        toggleText(selectionRange, spanType, factory)
+    } else throw Exception("unrecognized ${spanType.javaClass}")
     detectStyleAtCursor()
 }
 
 fun <T : RichSpan> Spannable.toggleParagraph(
-    span: Class<T>,
     paragraph: Paragraph,
-    factory: () -> T
+    spanType: Class<T>,
+    instance: T
 ) {
-    val start = paragraph.start
-    val end = paragraph.end
-    val instance = factory()
-    val spans = getSpans(start, end, span)
+    val spans = getSpans(paragraph.range, spanType)
     val sameStyleSpans = spans.filter {
-        it.javaClass == span
+        it.javaClass == spanType
     }
     val sameStyleButNotEqual = sameStyleSpans.all {
         it != instance
@@ -42,13 +46,13 @@ fun <T : RichSpan> Spannable.toggleParagraph(
         removeSpan(it)
     }
     if (sameStyleButNotEqual) {
-        setSpan(instance, start, end, 0)
+        setSpan(instance, paragraph.range, 0)
     }
 }
 
 /**
  * 对于在style 边缘新添加的字符自动应用样式。
- * 对于删除和在内部添加字符不符合此情景，会自动退出
+ * 对于删除和在内部添加字符不符合此情景，因为一般来说系统会自行处理，会自动退出
  */
 fun Spannable.autoApplyStyle(start: Int, before: Int, count: Int) {
     if (count < before) return
@@ -62,11 +66,10 @@ fun Spannable.autoApplyStyle(start: Int, before: Int, count: Int) {
 }
 
 fun <T : RichSpan> Spannable.toggleText(
-    span: Class<T>,
     selectionRange: IntRange,
-    factory: () -> T
+    span: Class<T>,
+    instance: T
 ) {
-    val instance = factory()
     if (instance.conflict.isNotEmpty()) {
         instance.conflict.map {
             resolveStyleFilled(selectionRange, span)
@@ -75,7 +78,7 @@ fun <T : RichSpan> Spannable.toggleText(
     val result = resolveStyleFilled(selectionRange, span)
 
     val (unfilled, filled) = result.separate {
-        it.byBroken || !it.coverResult.covered()
+        it.byBroken || !it.coverResult.covered
     }
 
     if (filled.isEmpty()) {
@@ -83,8 +86,8 @@ fun <T : RichSpan> Spannable.toggleText(
          * 没有完整覆盖，相当于此处没有此样式，需要打开样式
          */
         val clearCutStyle = clearCutStyle(
-            span,
             selectionRange,
+            span,
             unfilled
         )
         setSpan(instance, clearCutStyle, 0)
@@ -98,7 +101,7 @@ fun <T : RichSpan> Spannable.toggleText(
         other.forEach {
             removeSpan(it.span)
         }
-        clearCut(atPartial, selectionRange)
+        clearCut(selectionRange, atPartial)
     }
 }
 
@@ -106,8 +109,8 @@ fun <T : RichSpan> Spannable.toggleText(
  * 填充样式。
  */
 private fun <T : RichSpan> Spannable.clearCutStyle(
-    span: Class<T>,
     selectionRange: IntRange,
+    spanType: Class<T>,
     unfilled: List<FillResult>
 ): IntRange {
     val (atInner, atPartial) = unfilled.separate {
@@ -116,14 +119,14 @@ private fun <T : RichSpan> Spannable.clearCutStyle(
     atInner.forEach {
         removeSpan(it.span)
     }
-    return if (span.interfaces.any {
+    return if (spanType.interfaces.any {
             it == MultiValueStyle::class.java
         }) {
         /**
          * 需要注意新添加的span 可能与现有的不完全相同，
          * 存在MultiValueStyle 的问题。如果存在，需要切割原有的style
          */
-        clearCut(atPartial, selectionRange)
+        clearCut(selectionRange, atPartial)
         selectionRange
     } else {
         //原有的style 全部移除
@@ -145,8 +148,8 @@ private fun <T : RichSpan> Spannable.clearCutStyle(
 }
 
 private fun Spannable.clearCut(
-    atPartial: List<FillResult>,
-    selectionRange: IntRange
+    selectionRange: IntRange,
+    atPartial: List<FillResult>
 ) {
     atPartial.filter {
         it.range leftPartial selectionRange
@@ -174,12 +177,12 @@ private fun Spannable.resolveStyleFilled(
             it.style
         }
     //选中区域被填充的样式
-    return groupAtSelection(spans, selectionRange, allBreaks)[span].orEmpty()
+    return groupAtSelection(selectionRange, spans, allBreaks)[span].orEmpty()
 }
 
 /**
  * 获取选定范围内的所有样式。同一种style 可能对应多个Result，
- * 因为在更长范围，存在两个不相连的区块，否则应该就是一个Result。
+ * 因为在更长范围，可能存在两个不相连的区块，否则应该就是一个Result。
  */
 fun Spannable.resolveStyleFilled(
     selectionRange: IntRange
@@ -192,12 +195,12 @@ fun Spannable.resolveStyleFilled(
             it.style
         }
     //选中区域被填充的样式
-    return groupAtSelection(spans, selectionRange, allBreaks)
+    return groupAtSelection(selectionRange, spans, allBreaks)
 }
 
 private fun Spanned.groupAtSelection(
-    spans: Array<out RichSpan>,
     selectionRange: IntRange,
+    spans: Array<out RichSpan>,
     allBreaks: Map<Class<RichSpan>, List<Break>>
 ): Map<Class<out RichSpan>, List<FillResult>> {
     return spans.map { span ->
@@ -229,7 +232,7 @@ private fun Spanned.groupAtSelection(
     }
 }
 
-fun CharSequence.currentParagraph(selection: Int): Paragraph {
+fun CharSequence.paragraphAt(selection: Int): Paragraph {
     var paragraphStart = selection
     val text = this
     while (paragraphStart > 0 && text[paragraphStart - 1] != '\n') {
@@ -249,7 +252,7 @@ fun CharSequence.currentParagraph(selection: Int): Paragraph {
 fun Map<Class<out RichSpan>, List<FillResult>>.allFilled() =
     mapNotNull { entry ->
         if (entry.value.any {
-                it.coverResult.covered() && !it.byBroken
+                it.coverResult.covered && !it.byBroken
             }) {
             entry.key to entry.value.first().span
         } else null

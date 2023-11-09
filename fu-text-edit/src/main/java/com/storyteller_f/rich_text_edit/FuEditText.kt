@@ -108,7 +108,7 @@ class FuEditText @JvmOverloads constructor(
 
     fun <T : RichSpan> toggle(
         span: Class<T>,
-        factory: () -> T = { span.newInstance() },
+        factory: T = span.getConstructor().newInstance(),
     ) = editableText.toggle(selectionRange, span, factory, ::detectStyleAtCursor)
 
     companion object {
