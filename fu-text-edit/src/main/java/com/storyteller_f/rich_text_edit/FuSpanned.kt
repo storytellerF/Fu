@@ -6,7 +6,7 @@ import android.widget.TextView
 
 val TextView.selectionRange get() = selectionStart..selectionEnd
 
-fun <T> Spannable.setSpan(instance: T, selectionRange: IntRange, flag: Int) {
+fun <T> Spannable.setSpan(instance: T, selectionRange: IntRange, flag: Int = 0) {
     setSpan(instance, selectionRange.first, selectionRange.last, flag)
 }
 

@@ -23,6 +23,6 @@ enum class CoverResult {
 data class FillResult(
     val span: RichSpan,
     val coverResult: CoverResult,
-    val byBroken: Boolean,
+    val broken: Boolean,
     val range: IntRange
 )

@@ -2,33 +2,61 @@ package com.storyteller_f.rich_text_edit
 
 import android.text.Spannable
 import android.text.Spanned
+import android.util.Log
 
-fun <T : RichSpan> Spannable.toggle(
-    selectionRange: IntRange,
-    spanType: Class<T>,
-    detectStyleAtCursor: () -> Unit = {},
-) =
-    toggle(selectionRange, spanType, spanType.getConstructor().newInstance(), detectStyleAtCursor)
-
-fun <T : RichSpan> Spannable.toggle(
-    selectionRange: IntRange,
-    spanType: Class<T>,
-    factory: T,
-    detectStyleAtCursor: () -> Unit = {},
-) {
-    val interfaces = spanType.interfaces
-    if (interfaces.any {
-            it == RichParagraphStyle::class.java
-        }) {
-        val paragraph = paragraphAt(selectionRange.first)
-        toggleParagraph(paragraph, spanType, factory)
-    } else if (interfaces.any {
-            it == RichTextStyle::class.java
-        }) {
-        toggleText(selectionRange, spanType, factory)
-    } else throw Exception("unrecognized ${spanType.javaClass}")
-    detectStyleAtCursor()
+val BREAK_CHARACTER = run {
+    buildList {
+        listOf((32..47), (58..64), (91..96), (123..126)).forEach { range ->
+            range.forEach {
+                add(it.toChar())
+            }
+        }
+    }
 }
+
+fun <T : RichSpan> Spannable.toggle(
+    selectionRange: IntRange,
+    spanType: Class<T>,
+) =
+    toggle(selectionRange, spanType, spanType.getConstructor().newInstance())
+
+fun <T : RichSpan> Spannable.toggle(
+    selectionRange: IntRange,
+    spanType: Class<T>,
+    span: T,
+) {
+    if (spanType.isParagraphStyle) {
+        val paragraph = paragraphAt(selectionRange.first)
+        toggleParagraph(paragraph, spanType, span)
+    } else if (spanType.isCharacterStyle) {
+        toggleText(selectionRange, spanType, span)
+    } else throw Exception("unrecognized ${spanType.javaClass}")
+}
+
+fun Spannable.detectStyle(
+    range: IntRange,
+): List<Pair<Class<out RichSpan>, RichSpan>> {
+    val result = resolveStyleFilled(range)
+    val allFilled = detectStyle(result)
+    Log.d(
+        "Fu", "DetectCursorStyle run:\n ${
+            result.map {
+                "\t${it.key}-${it.value}"
+            }.joinToString("\n")
+        }\n\t$allFilled"
+    )
+    return allFilled
+}
+
+private val <T : RichSpan> Class<T>.isCharacterStyle
+    get() = interfaces.any {
+        it == RichTextStyle::class.java
+    }
+
+private val <T : RichSpan> Class<T>.isParagraphStyle
+    get() = interfaces.any {
+        it == RichParagraphStyle::class.java
+    }
 
 fun <T : RichSpan> Spannable.toggleParagraph(
     paragraph: Paragraph,
@@ -46,23 +74,34 @@ fun <T : RichSpan> Spannable.toggleParagraph(
         removeSpan(it)
     }
     if (sameStyleButNotEqual) {
-        setSpan(instance, paragraph.range, 0)
+        setSpan(instance, paragraph.range)
     }
 }
 
 /**
- * 对于在style 边缘新添加的字符自动应用样式。
- * 对于删除和在内部添加字符不符合此情景，因为一般来说系统会自行处理，会自动退出
+ * 段落型Style 在没有最后一个\n 的时候，在后面添加字符无法自动应用样式，需要手动处理。
  */
 fun Spannable.autoApplyStyle(start: Int, before: Int, count: Int) {
-    if (count < before) return
+    if (count < before) return//如果不是添加字符会直接退出
     //actually，before is 0
-    val styleFilled = resolveStyleFilled(start..start + before)
-    val allFilled = styleFilled.allFilled()
-    allFilled.forEach {
-        removeSpan(it.second)
-        setSpan(it.second, start, start + count, 0)
-    }
+
+//    val styleFilled = resolveStyleFilled(start..start + before).filter {
+//        it.key.isParagraphStyle
+//    }
+//    styleFilled.forEach { (c, u) ->
+//        u.forEach {
+//            Log.i("Fu", "autoApplyStyle: ${c.name} ${it.range}")
+//            if (it.range.last == start + before) {
+//                //trick：通过getSpanEnd 获取结果可能不太正确
+//                val newSpanRange = it.range.first..start + count
+//                Log.i("Fu", "autoApplyStyle: $newSpanRange")
+//                if (newSpanRange != it.range) {
+//                    removeSpan(it.span)
+//                    setSpan(it.span, newSpanRange)
+//                }
+//            }
+//        }
+//    }
 }
 
 fun <T : RichSpan> Spannable.toggleText(
@@ -78,7 +117,7 @@ fun <T : RichSpan> Spannable.toggleText(
     val result = resolveStyleFilled(selectionRange, span)
 
     val (unfilled, filled) = result.separate {
-        it.byBroken || !it.coverResult.covered
+        it.broken || !it.coverResult.covered
     }
 
     if (filled.isEmpty()) {
@@ -177,7 +216,9 @@ private fun Spannable.resolveStyleFilled(
             it.style
         }
     //选中区域被填充的样式
-    return groupAtSelection(selectionRange, spans, allBreaks)[span].orEmpty()
+    return spans.map {
+        spanToResult(it, selectionRange, allBreaks)
+    }
 }
 
 /**
@@ -195,41 +236,41 @@ fun Spannable.resolveStyleFilled(
             it.style
         }
     //选中区域被填充的样式
-    return groupAtSelection(selectionRange, spans, allBreaks)
-}
-
-private fun Spanned.groupAtSelection(
-    selectionRange: IntRange,
-    spans: Array<out RichSpan>,
-    allBreaks: Map<Class<RichSpan>, List<Break>>
-): Map<Class<out RichSpan>, List<FillResult>> {
     return spans.map { span ->
-        val spanRange = getSpanRange(span)
-        val beCovered = spanRange cover selectionRange
-        val equaled = spanRange == selectionRange
-        val currentStyleBreaks = allBreaks[span::class.java]
-        val spanScopeRange = spanRange.coerce(selectionRange)
-        val byBroken = if (currentStyleBreaks.isNullOrEmpty()) {
-            false
-        } else {
-            currentStyleBreaks.any {
-                val breakStart = getSpanStart(it)
-                val breakEnd = getSpanEnd(it)
-                val breakRange = breakStart..breakEnd
-                //break 需要至少需要占据选中范围内的style
-                breakRange cover spanScopeRange
-            }
-        }
-        val coverResult =
-            when {
-                beCovered -> CoverResult.Covered
-                equaled -> CoverResult.Equaled
-                else -> CoverResult.None
-            }
-        FillResult(span, coverResult, byBroken, spanRange)
+        spanToResult(span, selectionRange, allBreaks)
     }.groupBy {
         it.span.javaClass
     }
+}
+
+private fun Spanned.spanToResult(
+    span: RichSpan,
+    selectionRange: IntRange,
+    allBreaks: Map<Class<RichSpan>, List<Break>>
+): FillResult {
+    val spanRange = getSpanRange(span)
+    val covered = spanRange cover selectionRange
+    val equaled = spanRange == selectionRange
+    val currentStyleBreaks = allBreaks[span::class.java]
+    val spanScopeRange = spanRange.coerce(selectionRange)
+    val broken = if (currentStyleBreaks.isNullOrEmpty()) {
+        false
+    } else {
+        currentStyleBreaks.any {
+            val breakStart = getSpanStart(it)
+            val breakEnd = getSpanEnd(it)
+            val breakRange = breakStart..breakEnd
+            //break 需要至少需要占据选中范围内的style
+            breakRange cover spanScopeRange
+        }
+    }
+    val coverResult =
+        when {
+            covered -> CoverResult.Covered
+            equaled -> CoverResult.Equaled
+            else -> CoverResult.None
+        }
+    return FillResult(span, coverResult, broken, spanRange)
 }
 
 fun CharSequence.paragraphAt(selection: Int): Paragraph {
@@ -249,10 +290,12 @@ fun CharSequence.paragraphAt(selection: Int): Paragraph {
 /**
  * 指定区域存在完整的样式。
  */
-fun Map<Class<out RichSpan>, List<FillResult>>.allFilled() =
-    mapNotNull { entry ->
+fun Spannable.detectStyle(map: Map<Class<out RichSpan>, List<FillResult>>) =
+    map.mapNotNull { entry ->
         if (entry.value.any {
-                it.coverResult.covered && !it.byBroken
+                val range = it.range
+                val lastCharacter = get(range.last - 1)
+                it.coverResult.covered && !it.broken && !BREAK_CHARACTER.contains(lastCharacter)
             }) {
             entry.key to entry.value.first().span
         } else null

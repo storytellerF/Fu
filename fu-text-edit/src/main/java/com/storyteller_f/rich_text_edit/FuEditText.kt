@@ -24,12 +24,7 @@ class FuEditText @JvmOverloads constructor(
 
     inner class DetectCursorStyle : Runnable {
         override fun run() {
-            val selectionStart = selectionStart
-            val selectionEnd = selectionEnd
-            val result = editableText.resolveStyleFilled(selectionStart..selectionEnd)
-            val allFilled = result.allFilled()
-            Log.d(TAG, "run: $result $allFilled")
-            cursorStyle.value = allFilled
+            cursorStyle.value = editableText.detectStyle(selectionRange)
         }
 
     }
@@ -69,7 +64,7 @@ class FuEditText @JvmOverloads constructor(
                                 TAG,
                                 "onSpanChanged() called with: text = $text, what = $what, ostart = $ostart, oend = $oend, nstart = $nstart, nend = $nend"
                             )
-                            detectStyleAtCursor()
+                            sendDetectMessage()
                         }
 
                     }, 0, length, Spannable.SPAN_INCLUSIVE_INCLUSIVE)
@@ -101,7 +96,7 @@ class FuEditText @JvmOverloads constructor(
         })
     }
 
-    private fun detectStyleAtCursor() {
+    private fun sendDetectMessage() {
         richEditHandler.removeCallbacksAndMessages(null)
         richEditHandler.postDelayed(DetectCursorStyle(), 200)
     }
@@ -109,10 +104,13 @@ class FuEditText @JvmOverloads constructor(
     fun <T : RichSpan> toggle(
         span: Class<T>,
         factory: T = span.getConstructor().newInstance(),
-    ) = editableText.toggle(selectionRange, span, factory, ::detectStyleAtCursor)
+    ) {
+        editableText.toggle(selectionRange, span, factory)
+        sendDetectMessage()
+    }
 
     companion object {
-        private const val TAG = "RichEditText"
+        private const val TAG = "FuEditText"
     }
 
 }

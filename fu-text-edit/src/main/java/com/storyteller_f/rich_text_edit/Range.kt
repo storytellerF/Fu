@@ -1,6 +1,7 @@
 package com.storyteller_f.rich_text_edit
 
 import android.text.Spanned
+import android.util.Log
 
 
 infix fun <T : Comparable<T>> ClosedRange<T>.cover(range: ClosedRange<T>) =
