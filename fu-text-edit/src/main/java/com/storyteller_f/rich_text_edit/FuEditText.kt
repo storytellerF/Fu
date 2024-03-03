@@ -86,7 +86,6 @@ class FuEditText @JvmOverloads constructor(
                     TAG,
                     "onTextChanged() called with: s = $s ${s?.javaClass}, start = $start, before = $before, count = $count"
                 )
-                editableText.autoApplyStyle(start, before, count)
             }
 
             override fun afterTextChanged(s: Editable?) {
@@ -101,17 +100,22 @@ class FuEditText @JvmOverloads constructor(
         richEditHandler.postDelayed(DetectCursorStyle(), 200)
     }
 
-    fun <T : RichSpan> toggle(
+    fun <T : RichSpan> toggleAndFlush(
         span: Class<T>,
         factory: T = span.getConstructor().newInstance(),
     ) {
-        editableText.toggle(selectionRange, span, factory)
+        toggle(span, factory)
         sendDetectMessage()
     }
+
+    fun <T> clearAndFlush(klass: Class<T>) where T : MultiValueStyle<*>, T : RichSpan {
+        clear(klass)
+        sendDetectMessage()
+    }
+
 
     companion object {
         private const val TAG = "FuEditText"
     }
 
 }
-

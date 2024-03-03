@@ -46,10 +46,10 @@ class StrikethroughStyle : StrikethroughSpan(), RichTextStyle
 
 class QuotaStyle : QuoteSpan(), RichTextStyle
 
-class ColorStyle(override val value: Int) : ForegroundColorSpan(value), RichTextStyle,
+class ColorStyle(override val value: Int, ) : ForegroundColorSpan(value), RichTextStyle,
     MultiValueStyle<Int>
 
-class BackgroundStyle(override val value: Int) : BackgroundColorSpan(value), RichTextStyle,
+class BackgroundStyle(override val value: Int, ) : BackgroundColorSpan(value), RichTextStyle,
     MultiValueStyle<Int>
 
 class HeadlineStyle(override val value: Int, proportion: Float, private val context: Context) :

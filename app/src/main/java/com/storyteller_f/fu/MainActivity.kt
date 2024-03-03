@@ -24,45 +24,60 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
         val richEditText = binding.text
         binding.bold.setOnClickListener {
-            richEditText.toggle(BoldStyle::class.java)
+            richEditText.toggleAndFlush(BoldStyle::class.java)
         }
         binding.italic.setOnClickListener {
-            richEditText.toggle(ItalicStyle::class.java)
+            richEditText.toggleAndFlush(ItalicStyle::class.java)
         }
         binding.underline.setOnClickListener {
-            richEditText.toggle(UnderlineStyle::class.java)
+            richEditText.toggleAndFlush(UnderlineStyle::class.java)
         }
         binding.strike.setOnClickListener {
-            richEditText.toggle(StrikethroughStyle::class.java)
+            richEditText.toggleAndFlush(StrikethroughStyle::class.java)
         }
         binding.quota.setOnClickListener {
-            richEditText.toggle(QuotaStyle::class.java)
+            richEditText.toggleAndFlush(QuotaStyle::class.java)
         }
         binding.alignRight.setOnClickListener {
-            richEditText.toggle(AlignmentStyle::class.java, AlignmentStyle(Layout.Alignment.ALIGN_OPPOSITE))
+            richEditText.toggleAndFlush(
+                AlignmentStyle::class.java,
+                AlignmentStyle(Layout.Alignment.ALIGN_OPPOSITE)
+            )
         }
         binding.alignCenter.setOnClickListener {
-            richEditText.toggle(AlignmentStyle::class.java, AlignmentStyle(Layout.Alignment.ALIGN_CENTER))
+            richEditText.toggleAndFlush(
+                AlignmentStyle::class.java,
+                AlignmentStyle(Layout.Alignment.ALIGN_CENTER)
+            )
         }
         binding.alignLeft.setOnClickListener {
-            richEditText.toggle(AlignmentStyle::class.java, AlignmentStyle(Layout.Alignment.ALIGN_NORMAL))
+            richEditText.toggleAndFlush(
+                AlignmentStyle::class.java,
+                AlignmentStyle(Layout.Alignment.ALIGN_NORMAL)
+            )
+        }
+        binding.foreground.setOnClickListener {
+            richEditText.clearAndFlush(ColorStyle::class.java)
         }
         binding.changeTextColor.setOnClickListener {
             // Kotlin Code
             ColorPickerDialog
-                .Builder(this)        				// Pass Activity Instance
-                .setColorListener { color, _ ->
-                    richEditText.toggle(ColorStyle::class.java, ColorStyle(color))
+                .Builder(this)                        // Pass Activity Instance
+                .setColorListener { color, hex ->
+                    richEditText.toggleAndFlush(ColorStyle::class.java, ColorStyle(color))
                 }
                 .show()
         }
 
+        binding.background.setOnClickListener {
+            richEditText.clearAndFlush(BackgroundStyle::class.java)
+        }
         binding.changeBackgroundColor.setOnClickListener {
             // Kotlin Code
             ColorPickerDialog
-                .Builder(this)        				// Pass Activity Instance
+                .Builder(this)                        // Pass Activity Instance
                 .setColorListener { color, _ ->
-                    richEditText.toggle(BackgroundStyle::class.java, BackgroundStyle(color))
+                    richEditText.toggleAndFlush(BackgroundStyle::class.java, BackgroundStyle(color))
                 }
                 .show()
         }
@@ -70,7 +85,10 @@ class MainActivity : AppCompatActivity() {
         val headlineTextViews = listOf(binding.h1, binding.h2, binding.h3, binding.h4, binding.h5)
         headlineTextViews.forEachIndexed { index, button ->
             button.setOnClickListener {
-                richEditText.toggle(HeadlineStyle::class.java, HeadlineStyle(index + 1, headline[index], this))
+                richEditText.toggleAndFlush(
+                    HeadlineStyle::class.java,
+                    HeadlineStyle(index + 1, headline[index], this)
+                )
             }
         }
         richEditText.cursorStyle.observe(this) { spans ->

@@ -3,6 +3,7 @@ package com.storyteller_f.rich_text_edit
 import android.text.Spannable
 import android.text.Spanned
 import android.util.Log
+import android.widget.EditText
 
 val BREAK_CHARACTER = run {
     buildList {
@@ -23,21 +24,29 @@ fun <T : RichSpan> Spannable.toggle(
 fun <T : RichSpan> Spannable.toggle(
     selectionRange: IntRange,
     spanType: Class<T>,
-    span: T,
+    span: T?,
 ) {
     if (spanType.isParagraphStyle) {
         val paragraph = paragraphAt(selectionRange.first)
-        toggleParagraph(paragraph, spanType, span)
+        toggleParagraph(paragraph, spanType, span!!)
     } else if (spanType.isCharacterStyle) {
         toggleText(selectionRange, spanType, span)
     } else throw Exception("unrecognized ${spanType.javaClass}")
+}
+
+fun <T : RichSpan> EditText.toggle(span: Class<T>, factory: T) {
+    editableText.toggle(selectionRange, span, factory)
+}
+
+fun <T> EditText.clear(klass: Class<T>) where T : MultiValueStyle<*>, T : RichSpan {
+    editableText.toggle(selectionRange, klass, null)
 }
 
 fun Spannable.detectStyle(
     range: IntRange,
 ): List<Pair<Class<out RichSpan>, RichSpan>> {
     val result = resolveStyleFilled(range)
-    val allFilled = detectStyle(result)
+    val allFilled = detectCoveredStyle(result)
     Log.d(
         "Fu", "DetectCursorStyle run:\n ${
             result.map {
@@ -78,41 +87,15 @@ fun <T : RichSpan> Spannable.toggleParagraph(
     }
 }
 
-/**
- * 段落型Style 在没有最后一个\n 的时候，在后面添加字符无法自动应用样式，需要手动处理。
- */
-fun Spannable.autoApplyStyle(start: Int, before: Int, count: Int) {
-    if (count < before) return//如果不是添加字符会直接退出
-    //actually，before is 0
-
-//    val styleFilled = resolveStyleFilled(start..start + before).filter {
-//        it.key.isParagraphStyle
-//    }
-//    styleFilled.forEach { (c, u) ->
-//        u.forEach {
-//            Log.i("Fu", "autoApplyStyle: ${c.name} ${it.range}")
-//            if (it.range.last == start + before) {
-//                //trick：通过getSpanEnd 获取结果可能不太正确
-//                val newSpanRange = it.range.first..start + count
-//                Log.i("Fu", "autoApplyStyle: $newSpanRange")
-//                if (newSpanRange != it.range) {
-//                    removeSpan(it.span)
-//                    setSpan(it.span, newSpanRange)
-//                }
-//            }
-//        }
-//    }
-}
-
 fun <T : RichSpan> Spannable.toggleText(
     selectionRange: IntRange,
     span: Class<T>,
-    instance: T
+    instance: T?
 ) {
-    if (instance.conflict.isNotEmpty()) {
-        instance.conflict.map {
-            resolveStyleFilled(selectionRange, span)
-        }
+    if (instance != null && instance.conflict.isNotEmpty() && instance.conflict.any {
+            resolveStyleFilled(selectionRange, span).isNotEmpty()
+        }) {
+        return
     }
     val result = resolveStyleFilled(selectionRange, span)
 
@@ -129,7 +112,8 @@ fun <T : RichSpan> Spannable.toggleText(
             span,
             unfilled
         )
-        setSpan(instance, clearCutStyle, 0)
+        if (instance != null)
+            setSpan(instance, clearCutStyle, 0)
     } else {
         /**
          * 完全覆盖选中区域，不过也有可能存在选中区域以外的部分。
@@ -140,7 +124,16 @@ fun <T : RichSpan> Spannable.toggleText(
         other.forEach {
             removeSpan(it.span)
         }
-        clearCut(selectionRange, atPartial)
+        if (atPartial.isNotEmpty()) {
+            clearCut(selectionRange, atPartial)
+        }
+        if (instance != null) {
+            result.forEach {
+                if (it.span is MultiValueStyle<*>) {
+                    setSpan(instance, selectionRange)
+                }
+            }
+        }
     }
 }
 
@@ -186,6 +179,9 @@ private fun <T : RichSpan> Spannable.clearCutStyle(
     }
 }
 
+/**
+ * 裁切指定的style，缩短范围。
+ */
 private fun Spannable.clearCut(
     selectionRange: IntRange,
     atPartial: List<FillResult>
@@ -290,7 +286,7 @@ fun CharSequence.paragraphAt(selection: Int): Paragraph {
 /**
  * 指定区域存在完整的样式。
  */
-fun Spannable.detectStyle(map: Map<Class<out RichSpan>, List<FillResult>>) =
+fun Spannable.detectCoveredStyle(map: Map<Class<out RichSpan>, List<FillResult>>) =
     map.mapNotNull { entry ->
         if (entry.value.any {
                 val range = it.range
