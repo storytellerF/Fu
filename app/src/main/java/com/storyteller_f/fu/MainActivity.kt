@@ -5,6 +5,8 @@ import android.graphics.Color
 import android.os.Bundle
 import android.text.Layout
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.distinctUntilChanged
+import androidx.lifecycle.map
 import com.github.dhaval2404.colorpicker.ColorPickerDialog
 import com.storyteller_f.fu.databinding.ActivityMainBinding
 import com.storyteller_f.rich_text_edit.AlignmentStyle
@@ -13,6 +15,7 @@ import com.storyteller_f.rich_text_edit.BoldStyle
 import com.storyteller_f.rich_text_edit.ColorStyle
 import com.storyteller_f.rich_text_edit.HeadlineStyle
 import com.storyteller_f.rich_text_edit.ItalicStyle
+import com.storyteller_f.rich_text_edit.MultiValueStyle
 import com.storyteller_f.rich_text_edit.QuotaStyle
 import com.storyteller_f.rich_text_edit.StrikethroughStyle
 import com.storyteller_f.rich_text_edit.UnderlineStyle
@@ -63,7 +66,7 @@ class MainActivity : AppCompatActivity() {
             // Kotlin Code
             ColorPickerDialog
                 .Builder(this)                        // Pass Activity Instance
-                .setColorListener { color, hex ->
+                .setColorListener { color, _ ->
                     richEditText.toggleAndFlush(ColorStyle::class.java, ColorStyle(color))
                 }
                 .show()
@@ -91,36 +94,62 @@ class MainActivity : AppCompatActivity() {
                 )
             }
         }
-        richEditText.cursorStyle.observe(this) { spans ->
-            binding.underline.imageTintList = colorStateList(spans.any {
-                it.first == UnderlineStyle::class.java
-            })
-            binding.bold.imageTintList = colorStateList(spans.any {
-                it.first == BoldStyle::class.java
-            })
-            binding.italic.imageTintList = colorStateList(spans.any {
-                it.first == ItalicStyle::class.java
-            })
-            binding.strike.imageTintList = colorStateList(spans.any {
-                it.first == StrikethroughStyle::class.java
-            })
-            val allHeadline = spans.filter {
-                it.first == HeadlineStyle::class.java
-            }.map {
-                it.second
-            }.filterIsInstance<HeadlineStyle>()
-            headlineTextViews.forEachIndexed { index, button ->
-                button.setTextColor(colorStateList(allHeadline.any {
-                    it.value == index + 1
-                }))
+        listOf(
+            UnderlineStyle::class.java to binding.underline,
+            BoldStyle::class.java to binding.bold,
+            ItalicStyle::class.java to binding.italic,
+            StrikethroughStyle::class.java to binding.strike,
+            QuotaStyle::class.java to binding.quota
+        ).forEach { (clazz, view) ->
+            richEditText.cursorStyle.map { spans ->
+                spans.any { (spanClass) ->
+                    clazz == spanClass
+                }
+            }.distinctUntilChanged().observe(this) {
+                view.imageTintList = colorStateList(it)
             }
-            binding.foreground.setTextColor((spans.firstOrNull {
-                it.first == ColorStyle::class.java
-            }?.second as? ColorStyle)?.foregroundColor ?: Color.BLACK)
-            binding.background.setBackgroundColor((spans.firstOrNull {
-                it.first == BackgroundStyle::class.java
-            }?.second as? BackgroundStyle)?.backgroundColor ?: Color.WHITE)
         }
+        listOf(
+            Layout.Alignment.ALIGN_CENTER to binding.alignCenter,
+            Layout.Alignment.ALIGN_NORMAL to binding.alignLeft,
+            Layout.Alignment.ALIGN_OPPOSITE to binding.alignRight
+        ).forEach { (alignment, view) ->
+            richEditText.cursorStyle.map { spans ->
+                spans.any { (_, span) ->
+                    span is AlignmentStyle && alignment == span.value
+                }
+            }.distinctUntilChanged().observe(this) {
+                view.imageTintList = colorStateList(it)
+            }
+        }
+        listOf(
+            ColorStyle::class.java to Color.BLACK to binding.foreground,
+            BackgroundStyle::class.java to Color.WHITE to binding.background
+        ).forEach { (clazz, view) ->
+            richEditText.cursorStyle.map { spans ->
+                (spans.firstOrNull { (spanClass) ->
+                    spanClass == clazz.first
+                }?.second as? MultiValueStyle<*>)?.value as? Int
+            }.distinctUntilChanged().observe(this) { value ->
+                view.setTextColor(value ?: clazz.second)
+            }
+        }
+        headlineTextViews.forEachIndexed { index, button ->
+            richEditText.cursorStyle.map { spans ->
+                val allHeadline = spans.filter { (spanClass) ->
+                    spanClass == HeadlineStyle::class.java
+                }.map { (_, span) ->
+                    span
+                }.filterIsInstance<HeadlineStyle>()
+                allHeadline.any {
+                    it.value == index + 1
+                }
+            }.distinctUntilChanged().observe(this) {
+                button.setTextColor(colorStateList(it))
+            }
+
+        }
+
     }
 
     private fun colorStateList(b: Boolean) =

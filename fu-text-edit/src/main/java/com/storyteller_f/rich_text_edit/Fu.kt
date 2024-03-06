@@ -69,7 +69,7 @@ fun Spannable.detectStyle(
     range: IntRange,
 ): List<Pair<Class<out RichSpan>, RichSpan>> {
     val result = resolveStyleFillResult(range)
-    val allFilled = detectCoveredStyle(result)
+    val allFilled = detectCoveredStyle(result, range)
     Log.d(
         "Fu", "DetectCursorStyle run:\n ${
             result.map {
@@ -324,12 +324,12 @@ fun CharSequence.paragraphAt(selection: Int): Paragraph {
 /**
  * 指定区域存在完整的样式。
  */
-fun Spannable.detectCoveredStyle(map: Map<Class<out RichSpan>, List<FillResult>>) =
+fun Spannable.detectCoveredStyle(map: Map<Class<out RichSpan>, List<FillResult>>, r: IntRange) =
     map.mapNotNull { entry ->
         if (entry.value.any {
                 val range = it.range
                 val lastCharacter = get(range.last - 1)
-                it.coverResult.covered && !it.broken && !BREAK_CHARACTER.contains(lastCharacter)
+                it.coverResult.covered && !it.broken && (r.first < range.last || !BREAK_CHARACTER.contains(lastCharacter))
             }) {
             entry.key to entry.value.first().span
         } else null
