@@ -26,6 +26,16 @@ interface RichSpan {
         get() = emptyList()
 }
 
+val <T : RichSpan> Class<T>.isCharacterStyle
+    get() = interfaces.any {
+        it == RichTextStyle::class.java
+    }
+
+val <T : RichSpan> Class<T>.isParagraphStyle
+    get() = interfaces.any {
+        it == RichParagraphStyle::class.java
+    }
+
 interface RichTextStyle : RichSpan
 
 interface RichParagraphStyle : RichSpan

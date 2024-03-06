@@ -5,22 +5,36 @@ import android.text.Spanned
 import android.util.Log
 import android.widget.EditText
 
+/**
+ * 标点符号会导致样式应用范围。
+ */
 val BREAK_CHARACTER = run {
     buildList {
-        listOf((32..47), (58..64), (91..96), (123..126)).forEach { range ->
+        listOf(
+            (' '..'/'),
+            (':'..'@'),
+            ('['..'`'),
+            ('{'..'~')
+        ).forEach { range ->
             range.forEach {
-                add(it.toChar())
+                add(it)
             }
         }
     }
 }
 
+/**
+ * 切换样式。通过newInstance() 生成新的样式
+ */
 fun <T : RichSpan> Spannable.toggle(
     selectionRange: IntRange,
     spanType: Class<T>,
 ) =
     toggle(selectionRange, spanType, spanType.getConstructor().newInstance())
 
+/**
+ * 切换样式
+ */
 fun <T : RichSpan> Spannable.toggle(
     selectionRange: IntRange,
     spanType: Class<T>,
@@ -34,18 +48,27 @@ fun <T : RichSpan> Spannable.toggle(
     } else throw Exception("unrecognized ${spanType.javaClass}")
 }
 
+/**
+ * 切换样式
+ */
 fun <T : RichSpan> EditText.toggle(span: Class<T>, factory: T) {
     editableText.toggle(selectionRange, span, factory)
 }
 
+/**
+ * 清除指定样式
+ */
 fun <T> EditText.clear(klass: Class<T>) where T : MultiValueStyle<*>, T : RichSpan {
     editableText.toggle(selectionRange, klass, null)
 }
 
+/**
+ * 检测指定区域完整填充的样式
+ */
 fun Spannable.detectStyle(
     range: IntRange,
 ): List<Pair<Class<out RichSpan>, RichSpan>> {
-    val result = resolveStyleFilled(range)
+    val result = resolveStyleFillResult(range)
     val allFilled = detectCoveredStyle(result)
     Log.d(
         "Fu", "DetectCursorStyle run:\n ${
@@ -57,17 +80,10 @@ fun Spannable.detectStyle(
     return allFilled
 }
 
-private val <T : RichSpan> Class<T>.isCharacterStyle
-    get() = interfaces.any {
-        it == RichTextStyle::class.java
-    }
-
-private val <T : RichSpan> Class<T>.isParagraphStyle
-    get() = interfaces.any {
-        it == RichParagraphStyle::class.java
-    }
-
-fun <T : RichSpan> Spannable.toggleParagraph(
+/**
+ * 切换段落型样式
+ */
+private fun <T : RichSpan> Spannable.toggleParagraph(
     paragraph: Paragraph,
     spanType: Class<T>,
     instance: T
@@ -87,17 +103,20 @@ fun <T : RichSpan> Spannable.toggleParagraph(
     }
 }
 
-fun <T : RichSpan> Spannable.toggleText(
+/**
+ * 切换字符型样式
+ */
+private fun <T : RichSpan> Spannable.toggleText(
     selectionRange: IntRange,
     span: Class<T>,
     instance: T?
 ) {
     if (instance != null && instance.conflict.isNotEmpty() && instance.conflict.any {
-            resolveStyleFilled(selectionRange, span).isNotEmpty()
+            resolveStyleFillResult(selectionRange, span).isNotEmpty()
         }) {
         return
     }
-    val result = resolveStyleFilled(selectionRange, span)
+    val result = resolveStyleFillResult(selectionRange, span)
 
     val (unfilled, filled) = result.separate {
         it.broken || !it.coverResult.covered
@@ -138,7 +157,7 @@ fun <T : RichSpan> Spannable.toggleText(
 }
 
 /**
- * 填充样式。
+ * 裁切指定区域指定类型的样式清除。
  */
 private fun <T : RichSpan> Spannable.clearCutStyle(
     selectionRange: IntRange,
@@ -162,21 +181,32 @@ private fun <T : RichSpan> Spannable.clearCutStyle(
         selectionRange
     } else {
         //原有的style 全部移除
-        val left = atPartial.filter {
-            it.range leftPartial selectionRange
-        }.minOfOrNull {
-            it.range.first
-        } ?: selectionRange.first
-        val right = atPartial.filter {
-            it.range rightPartial selectionRange
-        }.minOfOrNull {
-            it.range.last
-        } ?: selectionRange.last
-        atPartial.forEach {
-            removeSpan(it.span)
-        }
-        left..right
+        removeAndCalcMaxRange(atPartial, selectionRange)
     }
+}
+
+/**
+ * 后续需要重新设置一个覆盖完整区域的样式，
+ * 完整区域指当前所有同类型在指定范围存在过的最大范围
+ */
+private fun Spannable.removeAndCalcMaxRange(
+    atPartial: List<FillResult>,
+    selectionRange: IntRange
+): IntRange {
+    val left = atPartial.filter {
+        it.range leftPartial selectionRange
+    }.minOfOrNull {
+        it.range.first
+    } ?: selectionRange.first
+    val right = atPartial.filter {
+        it.range rightPartial selectionRange
+    }.minOfOrNull {
+        it.range.last
+    } ?: selectionRange.last
+    atPartial.forEach {
+        removeSpan(it.span)
+    }
+    return left..right
 }
 
 /**
@@ -198,13 +228,15 @@ private fun Spannable.clearCut(
     }
 }
 
-private fun Spannable.resolveStyleFilled(
+/**
+ * 获取选中区域指定样式的填充结果。
+ */
+private fun Spannable.resolveStyleFillResult(
     selectionRange: IntRange,
     span: Class<out RichSpan>
 ): List<FillResult> {
     //选中区域所有的样式
-    val spans =
-        getSpans(selectionRange, span)
+    val spans = getSpans(selectionRange, span)
     val allBreaks =
         getSpans(selectionRange, Break::class.java).filter {
             it.style == span
@@ -221,7 +253,7 @@ private fun Spannable.resolveStyleFilled(
  * 获取选定范围内的所有样式。同一种style 可能对应多个Result，
  * 因为在更长范围，可能存在两个不相连的区块，否则应该就是一个Result。
  */
-fun Spannable.resolveStyleFilled(
+fun Spannable.resolveStyleFillResult(
     selectionRange: IntRange
 ): Map<Class<out RichSpan>, List<FillResult>> {
     //选中区域所有的样式
@@ -239,6 +271,9 @@ fun Spannable.resolveStyleFilled(
     }
 }
 
+/**
+ * 获取span 在指定区域的填充结果
+ */
 private fun Spanned.spanToResult(
     span: RichSpan,
     selectionRange: IntRange,
@@ -269,6 +304,9 @@ private fun Spanned.spanToResult(
     return FillResult(span, coverResult, broken, spanRange)
 }
 
+/**
+ * 获取选中位置所在的段落。
+ */
 fun CharSequence.paragraphAt(selection: Int): Paragraph {
     var paragraphStart = selection
     val text = this
