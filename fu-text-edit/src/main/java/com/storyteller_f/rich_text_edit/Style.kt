@@ -24,6 +24,8 @@ interface RichSpan {
      */
     val conflict: List<Class<out RichSpan>>
         get() = emptyList()
+
+    val type: String
 }
 
 val <T : RichSpan> Class<T>.isCharacterStyle
@@ -46,21 +48,42 @@ interface MultiValueStyle<T> {
     val value: T
 }
 
-class BoldStyle : StyleSpan(Typeface.BOLD), RichTextStyle
+class BoldStyle : StyleSpan(Typeface.BOLD), RichTextStyle {
+    override val type: String
+        get() = "bold"
+}
 
-class ItalicStyle : StyleSpan(Typeface.ITALIC), RichTextStyle
+class ItalicStyle : StyleSpan(Typeface.ITALIC), RichTextStyle {
+    override val type: String
+        get() = "italic"
+}
 
-class UnderlineStyle : UnderlineSpan(), RichTextStyle
+class UnderlineStyle : UnderlineSpan(), RichTextStyle {
+    override val type: String
+        get() = "underline"
+}
 
-class StrikethroughStyle : StrikethroughSpan(), RichTextStyle
+class StrikethroughStyle : StrikethroughSpan(), RichTextStyle {
+    override val type: String
+        get() = "strikethrough"
+}
 
-class QuotaStyle : QuoteSpan(), RichTextStyle
+class QuotaStyle : QuoteSpan(), RichTextStyle {
+    override val type: String
+        get() = "quota"
+}
 
 class ColorStyle(override val value: Int) : ForegroundColorSpan(value), RichTextStyle,
-    MultiValueStyle<Int>
+    MultiValueStyle<Int> {
+    override val type: String
+        get() = "color"
+}
 
 class BackgroundStyle(override val value: Int) : BackgroundColorSpan(value), RichTextStyle,
-    MultiValueStyle<Int>
+    MultiValueStyle<Int> {
+    override val type: String
+        get() = "background"
+}
 
 class HeadlineStyle(override val value: Int, proportion: Float, private val context: Context) :
     ParagraphStyle, RichParagraphStyle,
@@ -97,13 +120,16 @@ class HeadlineStyle(override val value: Int, proportion: Float, private val cont
 
     override val conflict: List<Class<out RichSpan>>
         get() = listOf(BoldStyle::class.java)
+
+    override val type: String
+        get() = "headline"
 }
 
-class AlignmentStyle(val align: Layout.Alignment) : AlignmentSpan.Standard(align),
+class AlignmentStyle(align: Layout.Alignment) : AlignmentSpan.Standard(align),
     RichParagraphStyle,
-    MultiValueStyle<Layout.Alignment> {
-    override val value: Layout.Alignment
-        get() = align
+    MultiValueStyle<Int> {
+    override val value: Int
+        get() = alignment.ordinal
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -111,12 +137,15 @@ class AlignmentStyle(val align: Layout.Alignment) : AlignmentSpan.Standard(align
 
         other as AlignmentStyle
 
-        return align == other.align
+        return alignment == other.alignment
     }
 
     override fun hashCode(): Int {
-        return align.hashCode()
+        return alignment.hashCode()
     }
+
+    override val type: String
+        get() = "alignment"
 }
 
 data class Paragraph(val start: Int, val end: Int) {

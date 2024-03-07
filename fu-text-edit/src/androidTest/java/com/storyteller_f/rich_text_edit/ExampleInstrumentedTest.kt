@@ -1,6 +1,7 @@
 package com.storyteller_f.rich_text_edit
 
 import android.graphics.Color
+import android.text.Layout
 import android.text.SpannableStringBuilder
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -87,6 +88,28 @@ class ExampleInstrumentedTest {
         assertEquals(1, editable.detectStyle(0..2).size)
         editable.toggle(0..2, HeadlineStyle::class.java, HeadlineStyle(2, 1.3f, appContext))
         assertEquals(1, editable.detectStyle(0..2).size)
+    }
+
+    @Test
+    fun testCharSequenceStringify() {
+        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+
+        val editable = builder {
+            append("hello")
+        }
+        editable.toggle(0..2, HeadlineStyle::class.java, HeadlineStyle(1, 2f, appContext))
+        val richFormatStringify = editable.richFormatPlain()
+        assertEquals("StyleData(type=headline, start=0, end=5, data=1)", richFormatStringify)
+    }
+
+    @Test
+    fun testAlignmentCharSequenceStringify() {
+        val editable = builder {
+            append("hello")
+        }
+        editable.toggle(0..2, AlignmentStyle::class.java, AlignmentStyle(Layout.Alignment.ALIGN_OPPOSITE))
+        val richFormatStringify = editable.richFormatPlain()
+        assertEquals("StyleData(type=alignment, start=0, end=5, data=1)", richFormatStringify)
     }
 
     private fun builder(block: SpannableStringBuilder.() -> Unit): SpannableStringBuilder {

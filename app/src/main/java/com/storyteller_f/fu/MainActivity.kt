@@ -116,7 +116,7 @@ class MainActivity : AppCompatActivity() {
         ).forEach { (alignment, view) ->
             richEditText.cursorStyle.map { spans ->
                 spans.any { (_, span) ->
-                    span is AlignmentStyle && alignment == span.value
+                    span is AlignmentStyle && alignment == span.alignment
                 }
             }.distinctUntilChanged().observe(this) {
                 view.imageTintList = colorStateList(it)
