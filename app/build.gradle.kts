@@ -54,5 +54,5 @@ dependencies {
     androidTestImplementation(libs.espresso.core)
     implementation(project(":fu-text-edit"))
     implementation(project(":fu-edit-control"))
-    implementation("com.github.Dhaval2404:ColorPicker:2.3")
+    implementation(libs.color.picker)
 }

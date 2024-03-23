@@ -99,7 +99,9 @@ class ExampleInstrumentedTest {
         }
         editable.toggle(0..2, HeadlineStyle::class.java, HeadlineStyle(1, 2f, appContext))
         val richFormatStringify = editable.richFormatPlain()
-        assertEquals("StyleData(type=headline, start=0, end=5, data=1)", richFormatStringify)
+        assertEquals("""[{"type":"headline","start":0,"end":5,"data":1}]""", richFormatStringify)
+        val parseRichFormatPlain = appContext.parseRichFormatPlain("hello", richFormatStringify)
+        assertEquals(1, parseRichFormatPlain.getSpans(0..2, Any::class.java).size)
     }
 
     @Test
@@ -107,9 +109,13 @@ class ExampleInstrumentedTest {
         val editable = builder {
             append("hello")
         }
-        editable.toggle(0..2, AlignmentStyle::class.java, AlignmentStyle(Layout.Alignment.ALIGN_OPPOSITE))
+        editable.toggle(
+            0..2,
+            AlignmentStyle::class.java,
+            AlignmentStyle(Layout.Alignment.ALIGN_OPPOSITE)
+        )
         val richFormatStringify = editable.richFormatPlain()
-        assertEquals("StyleData(type=alignment, start=0, end=5, data=1)", richFormatStringify)
+        assertEquals("""[{"type":"align","start":0,"end":5,"data":1}]""", richFormatStringify)
     }
 
     private fun builder(block: SpannableStringBuilder.() -> Unit): SpannableStringBuilder {

@@ -26,6 +26,18 @@ interface RichSpan {
         get() = emptyList()
 
     val type: String
+
+    companion object {
+        const val PRESET_STYLE_BOLD = "bold"
+        const val PRESET_STYLE_ITALIC = "italic"
+        const val PRESET_STYLE_BACKGROUND = "background"
+        const val PRESET_STYLE_HEADLINE = "headline"
+        const val PRESET_STYLE_FOREGROUND = "color"
+        const val PRESET_STYLE_UNDERLINE = "underline"
+        const val PRESET_STYLE_STRIKETHROUGH = "strikethrough"
+        const val PRESET_STYLE_QUOTA = "quota"
+        const val PRESET_STYLE_ALIGN = "align"
+    }
 }
 
 val <T : RichSpan> Class<T>.isCharacterStyle
@@ -50,42 +62,116 @@ interface MultiValueStyle<T> {
 
 class BoldStyle : StyleSpan(Typeface.BOLD), RichTextStyle {
     override val type: String
-        get() = "bold"
+        get() = RichSpan.PRESET_STYLE_BOLD
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return 0
+    }
 }
 
 class ItalicStyle : StyleSpan(Typeface.ITALIC), RichTextStyle {
     override val type: String
-        get() = "italic"
+        get() = RichSpan.PRESET_STYLE_ITALIC
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return 0
+    }
 }
 
 class UnderlineStyle : UnderlineSpan(), RichTextStyle {
     override val type: String
-        get() = "underline"
+        get() = RichSpan.PRESET_STYLE_UNDERLINE
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return 0
+    }
 }
 
 class StrikethroughStyle : StrikethroughSpan(), RichTextStyle {
     override val type: String
-        get() = "strikethrough"
+        get() = RichSpan.PRESET_STYLE_STRIKETHROUGH
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return 0
+    }
 }
 
 class QuotaStyle : QuoteSpan(), RichTextStyle {
     override val type: String
-        get() = "quota"
+        get() = RichSpan.PRESET_STYLE_QUOTA
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return 0
+    }
 }
 
 class ColorStyle(override val value: Int) : ForegroundColorSpan(value), RichTextStyle,
     MultiValueStyle<Int> {
     override val type: String
-        get() = "color"
+        get() = RichSpan.PRESET_STYLE_FOREGROUND
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as ColorStyle
+
+        return value == other.value
+    }
+
+    override fun hashCode(): Int {
+        return value
+    }
+
+
 }
 
 class BackgroundStyle(override val value: Int) : BackgroundColorSpan(value), RichTextStyle,
     MultiValueStyle<Int> {
     override val type: String
-        get() = "background"
+        get() = RichSpan.PRESET_STYLE_BACKGROUND
 }
 
-class HeadlineStyle(override val value: Int, proportion: Float, private val context: Context) :
+class HeadlineStyle(
+    override val value: Int,
+    proportion: Float = PRESET_HEADLINE_PROPORTION[value - 1],
+    private val context: Context
+) :
     ParagraphStyle, RichParagraphStyle,
     RelativeSizeSpan(proportion), MultiValueStyle<Int> {
     override fun updateDrawState(ds: TextPaint) {
@@ -122,14 +208,30 @@ class HeadlineStyle(override val value: Int, proportion: Float, private val cont
         get() = listOf(BoldStyle::class.java)
 
     override val type: String
-        get() = "headline"
+        get() = RichSpan.PRESET_STYLE_HEADLINE
+
+    companion object {
+        val PRESET_HEADLINE_PROPORTION = listOf(3f, 2.5f, 2f, 1.5f, 1.2f)
+    }
 }
 
 class AlignmentStyle(align: Layout.Alignment) : AlignmentSpan.Standard(align),
     RichParagraphStyle,
     MultiValueStyle<Int> {
     override val value: Int
-        get() = alignment.ordinal
+        get() = when (alignment) {
+            Layout.Alignment.ALIGN_CENTER -> OUTPUT_ALIGN_CENTER
+            Layout.Alignment.ALIGN_OPPOSITE -> OUTPUT_ALIGN_RIGHT
+            else -> OUTPUT_ALIGN_LEFT
+        }
+
+    constructor(v: Int) : this(
+        when (v) {
+            OUTPUT_ALIGN_CENTER -> Layout.Alignment.ALIGN_CENTER
+            OUTPUT_ALIGN_RIGHT -> Layout.Alignment.ALIGN_OPPOSITE
+            else -> Layout.Alignment.ALIGN_NORMAL
+        }
+    )
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -145,7 +247,13 @@ class AlignmentStyle(align: Layout.Alignment) : AlignmentSpan.Standard(align),
     }
 
     override val type: String
-        get() = "alignment"
+        get() = RichSpan.PRESET_STYLE_ALIGN
+
+    companion object {
+        const val OUTPUT_ALIGN_LEFT = -1
+        const val OUTPUT_ALIGN_CENTER = 0
+        const val OUTPUT_ALIGN_RIGHT = 1
+    }
 }
 
 data class Paragraph(val start: Int, val end: Int) {
