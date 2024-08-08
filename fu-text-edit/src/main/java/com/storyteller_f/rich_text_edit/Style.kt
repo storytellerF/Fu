@@ -10,9 +10,11 @@ import android.text.style.ForegroundColorSpan
 import android.text.style.ParagraphStyle
 import android.text.style.QuoteSpan
 import android.text.style.RelativeSizeSpan
+import android.text.style.ReplacementSpan
 import android.text.style.StrikethroughSpan
 import android.text.style.StyleSpan
 import android.text.style.UnderlineSpan
+import android.view.View
 import androidx.core.graphics.TypefaceCompat
 
 /**
@@ -258,4 +260,8 @@ class AlignmentStyle(align: Layout.Alignment) : AlignmentSpan.Standard(align),
 
 data class Paragraph(val start: Int, val end: Int) {
     val range get() = start..end
+}
+
+abstract class ViewStyle : ReplacementSpan(), RichParagraphStyle {
+    abstract fun getView(): View
 }

@@ -6,68 +6,74 @@
     android:orientation="vertical"
     tools:context=".MainActivity">
 
-    <LinearLayout
+    <HorizontalScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:layout_height="wrap_content">
 
-        <ImageButton
-            android:id="@+id/bold"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:src="@drawable/ic_baseline_format_bold_24" />
-
-        <ImageButton
-            android:id="@+id/italic"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:src="@drawable/ic_baseline_format_italic_24" />
-
-        <ImageButton
-            android:id="@+id/underline"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:src="@drawable/ic_baseline_format_underlined_24" />
-
-        <ImageButton
-            android:id="@+id/strike"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:src="@drawable/ic_baseline_format_strikethrough_24" />
-
-        <TextView
-            android:id="@+id/foreground"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_gravity="center"
             android:gravity="center"
-            android:paddingHorizontal="12dp"
-            android:text="A" />
+            android:orientation="horizontal">
 
-        <Button
-            android:id="@+id/change_text_color"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:minWidth="0dp"
-            android:text="✍️" />
+            <ImageButton
+                android:id="@+id/bold"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_baseline_format_bold_24" />
 
-        <TextView
-            android:id="@+id/background"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_gravity="center"
-            android:gravity="center"
-            android:paddingHorizontal="12dp"
-            android:text="A" />
+            <ImageButton
+                android:id="@+id/italic"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_baseline_format_italic_24" />
 
-        <Button
-            android:id="@+id/change_background_color"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:minWidth="0dp"
-            android:text="🎨" />
+            <ImageButton
+                android:id="@+id/underline"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_baseline_format_underlined_24" />
 
-    </LinearLayout>
+            <ImageButton
+                android:id="@+id/strike"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_baseline_format_strikethrough_24" />
+
+            <TextView
+                android:id="@+id/foreground"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_gravity="center"
+                android:gravity="center"
+                android:paddingHorizontal="12dp"
+                android:text="A" />
+
+            <Button
+                android:id="@+id/change_text_color"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="0dp"
+                android:text="✍️" />
+
+            <TextView
+                android:id="@+id/background"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_gravity="center"
+                android:gravity="center"
+                android:paddingHorizontal="12dp"
+                android:text="A" />
+
+            <Button
+                android:id="@+id/change_background_color"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="0dp"
+                android:text="🎨" />
+
+        </LinearLayout>
+    </HorizontalScrollView>
 
     <HorizontalScrollView
         android:layout_width="match_parent"
@@ -141,14 +147,21 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:src="@drawable/ic_baseline_format_quote_24" />
+
+        <ImageButton
+            android:id="@+id/image"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/baseline_image_24" />
     </LinearLayout>
 
-    <com.storyteller_f.rich_text_edit.FuEditText
-        android:id="@+id/text"
+    <com.storyteller_f.rich_text_edit.FuEditTextGroup
+        android:id="@+id/group"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:fontFamily="@font/montserrat"
-        android:text="Hello World!" />
+        android:layout_weight="1">
+
+    </com.storyteller_f.rich_text_edit.FuEditTextGroup>
+
 
 </LinearLayout>

@@ -22,6 +22,8 @@ class FuEditText @JvmOverloads constructor(
 
     private val richEditHandler = Handler(Looper.getMainLooper())
 
+    private val spanWatchers = mutableListOf<SpanWatcher>()
+
     inner class DetectCursorStyle : Runnable {
         override fun run() {
             cursorStyle.value = editableText.detectStyle(selectionRange)
@@ -41,6 +43,9 @@ class FuEditText @JvmOverloads constructor(
                                 TAG,
                                 "onSpanAdded() called with: text = $text, what = $what, start = $start, end = $end"
                             )
+                            spanWatchers.forEach {
+                                it.onSpanAdded(text, what, start, end)
+                            }
                         }
 
                         override fun onSpanRemoved(
@@ -50,6 +55,9 @@ class FuEditText @JvmOverloads constructor(
                                 TAG,
                                 "onSpanRemoved() called with: text = $text, what = $what, start = $start, end = $end"
                             )
+                            spanWatchers.forEach {
+                                it.onSpanRemoved(text, what, start, end)
+                            }
                         }
 
                         override fun onSpanChanged(
@@ -65,6 +73,9 @@ class FuEditText @JvmOverloads constructor(
                                 "onSpanChanged() called with: text = $text, what = $what, ostart = $ostart, oend = $oend, nstart = $nstart, nend = $nend"
                             )
                             sendDetectMessage()
+                            spanWatchers.forEach {
+                                it.onSpanChanged(text, what, ostart, oend, nstart, nend)
+                            }
                         }
 
                     }, 0, length, Spannable.SPAN_INCLUSIVE_INCLUSIVE)
@@ -96,8 +107,8 @@ class FuEditText @JvmOverloads constructor(
     }
 
     private fun sendDetectMessage() {
-        richEditHandler.removeCallbacksAndMessages(null)
-        richEditHandler.postDelayed(DetectCursorStyle(), 200)
+//        richEditHandler.removeCallbacksAndMessages(null)
+//        richEditHandler.postDelayed(DetectCursorStyle(), 200)
     }
 
     fun <T : RichSpan> toggleAndFlush(
@@ -111,6 +122,10 @@ class FuEditText @JvmOverloads constructor(
     fun <T> clearAndFlush(klass: Class<T>) where T : MultiValueStyle<*>, T : RichSpan {
         clear(klass)
         sendDetectMessage()
+    }
+
+    fun addSpanWatcher(spanWatcher: SpanWatcher) {
+        spanWatchers.add(spanWatcher)
     }
 
 

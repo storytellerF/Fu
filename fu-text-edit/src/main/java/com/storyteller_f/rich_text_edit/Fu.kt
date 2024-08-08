@@ -326,10 +326,14 @@ fun CharSequence.paragraphAt(selection: Int): Paragraph {
  */
 fun Spannable.detectCoveredStyle(map: Map<Class<out RichSpan>, List<FillResult>>, r: IntRange) =
     map.mapNotNull { entry ->
-        if (entry.value.any {
+        if (entry.value.filter {
+                it.range.last < 0
+            }.any {
                 val range = it.range
                 val lastCharacter = get(range.last - 1)
-                it.coverResult.covered && !it.broken && (r.first < range.last || !BREAK_CHARACTER.contains(lastCharacter))
+                it.coverResult.covered && !it.broken && (r.first < range.last || !BREAK_CHARACTER.contains(
+                    lastCharacter
+                ))
             }) {
             entry.key to entry.value.first().span
         } else null
